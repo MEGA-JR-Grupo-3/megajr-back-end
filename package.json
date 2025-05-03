@@ -2,11 +2,15 @@
   "name": "todo-megajr-back",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.ts",
+  "engines": {
+    "node": "18.0.0"
+  },
+  "type": "module",
   "scripts": {
-    "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "build": "tsup src"
   },
   "repository": {
     "type": "git",
@@ -15,14 +19,23 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/MEGA-JR-Grupo-3/megajr-back-end/issues"
   },
   "homepage": "https://github.com/MEGA-JR-Grupo-3/megajr-back-end#readme",
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/mysql": "^2.15.27",
     "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.3.0",
+    "mysql2": "^3.14.1",
+    "nodemon": "^3.1.10"
   }
 }

@@ -1,11 +1,7 @@
-interface User {
-  name: string;
-  age: number;
-}
+import app from "./app.js";
 
-function saveUserToDatabase(user: User) {
-  // ...
-  console.log(user);
-}
+const PORT = process.env.PORT || 8800;
 
-saveUserToDatabase({ name: "John", age: 30 });
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
