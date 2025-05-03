@@ -8,9 +8,7 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node dist/server.cjs",
-    "dev": "tsx src/server.ts",
-    "build": "tsup src"
+  "start": "node server.js"
   },
   "repository": {
     "type": "git",
