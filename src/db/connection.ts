@@ -1,12 +1,10 @@
 import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 async function createDatabaseConnection() {
-  const db = await mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "98468831Ee@",
-    database: "dbjubitasks",
-  });
+  const db = await mysql.createConnection(process.env.DATABASE_URL as string);
   return db;
 }
 
