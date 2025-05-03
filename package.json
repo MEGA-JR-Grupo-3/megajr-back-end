@@ -8,7 +8,7 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node dist/server.cjs",
     "dev": "tsx src/server.ts",
     "build": "tsup src"
   },
