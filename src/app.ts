@@ -6,12 +6,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://megajr-front-end.vercel.app",
+    origin:
+      "https://megajr-front-end-git-main-enzo-valencuelas-projects.vercel.app//",
   })
 );
-console.log(
-  "CORS middleware configurado para https://megajr-front-end.vercel.app"
-); // Adicione este log
 app.use(express.json());
 app.use("/", userRoutes);
 
