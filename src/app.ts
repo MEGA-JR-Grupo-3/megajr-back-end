@@ -9,6 +9,9 @@ app.use(
     origin: "https://megajr-front-end.vercel.app",
   })
 );
+console.log(
+  "CORS middleware configurado para https://megajr-front-end.vercel.app"
+); // Adicione este log
 app.use(express.json());
 app.use("/", userRoutes);
 
