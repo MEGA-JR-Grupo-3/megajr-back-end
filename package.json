@@ -2,13 +2,15 @@
   "name": "todo-megajr-back",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "server.ts",
   "engines": {
     "node": "18.0.0"
   },
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node dist/server.cjs",
+    "dev": "tsx src/server.ts",
+    "build": "tsup src"
   },
   "repository": {
     "type": "git",
