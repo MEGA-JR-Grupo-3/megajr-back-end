@@ -6,8 +6,7 @@ const app = express();
 
 app.use(
   cors({
-    origin:
-      "https://megajr-front-end-git-main-enzo-valencuelas-projects.vercel.app//",
+    origin: "https://megajr-front-end.vercel.app",
   })
 );
 app.use(express.json());
