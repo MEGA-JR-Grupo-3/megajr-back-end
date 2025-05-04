@@ -1,17 +1,18 @@
 import express from "express";
 import userRoutes from "./routes/user.routes.js";
-import cors from "cors";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: "https://megajr-front.netlify.app",
-  })
-);
-
 app.use((req, res, next) => {
-  console.log(`Recebida requisição: ${req.method} ${req.url}`);
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://megajr-front.netlify.app"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   next();
 });
 
