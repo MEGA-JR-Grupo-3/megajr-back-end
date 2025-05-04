@@ -12,10 +12,10 @@ app.use((req, res, next) => {
 console.log("Configurando CORS..."); // Adicione este log
 app.use(
   cors({
-    origin: "*", // Permite todas as origens (NÃO USAR EM PRODUÇÃO!)
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Se precisar de cookies em cross-origin
-    allowedHeaders: "Content-Type, Authorization",
+    origin: "https://megajr-front-end.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 console.log("CORS configurado."); // Adicione este log
