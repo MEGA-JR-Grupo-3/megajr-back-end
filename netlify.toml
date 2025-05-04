@@ -1,0 +1,18 @@
+[build]
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+    [headers.values]
+      Access-Control-Allow-Origin = "https://megajr-front-end.vercel.app"
+      Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+      Access-Control-Allow-Headers = "Content-Type, Authorization"
