@@ -10,14 +10,7 @@ app.use((req, res, next) => {
 });
 
 console.log("Configurando CORS..."); // Adicione este log
-app.use(
-  cors({
-    origin: "https://megajr-front-end.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+app.use(cors());
 console.log("CORS configurado."); // Adicione este log
 app.use(express.json());
 app.use("/", userRoutes);
