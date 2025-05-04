@@ -4,6 +4,11 @@ import cors from "cors";
 
 const app = express();
 
+app.use((req, res, next) => {
+  console.log(`Recebida requisição: ${req.method} ${req.url}`);
+  next();
+});
+
 console.log("Configurando CORS..."); // Adicione este log
 app.use(
   cors({

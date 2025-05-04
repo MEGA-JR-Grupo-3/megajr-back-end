@@ -48,7 +48,7 @@ export const checkUserExists = async (req: Request, res: Response) => {
 };
 
 // Função para cadastrar um novo usuário
-export const createUser = async (req: Request, res: Response) => {
+/*export const createUser = async (req: Request, res: Response) => {
   const { name, email, senha } = req.body;
 
   const userPassword = senha || "senhaGeradaPeloSistema";
@@ -85,5 +85,8 @@ export const createUser = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao cadastrar usuário", error: err });
-  }
+} }*/
+export const createUser = async (req: Request, res: Response) => {
+  console.log("Função createUser chamada!");
+  return res.status(201).json({ message: "Cadastro realizado (teste)!" });
 };
