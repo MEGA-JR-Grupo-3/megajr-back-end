@@ -2,7 +2,7 @@ import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
 import { RowDataPacket } from "mysql2";
 
-// Função para buscar usuários
+// Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
 export const getUsers = async (_: Request, res: Response) => {
   const db = await dbPromise;
   const q = "SELECT * FROM usuarios";
@@ -17,9 +17,9 @@ export const getUsers = async (_: Request, res: Response) => {
   }
 };
 
-// Função para verificar se o usuário já existe
+// Função para verificar se o usuário já existe ------------------------------------------------------------------------------------------------------------
 export const checkUserExists = async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { email } = req.query;
 
   if (!email) {
     return res.status(400).json({ message: "Email é obrigatório" });
@@ -47,8 +47,8 @@ export const checkUserExists = async (req: Request, res: Response) => {
   }
 };
 
-// Função para cadastrar um novo usuário
-/*export const createUser = async (req: Request, res: Response) => {
+// Função para cadastrar um novo usuário  ------------------------------------------------------------------------------------------------------------
+export const createUser = async (req: Request, res: Response) => {
   const { name, email, senha } = req.body;
 
   const userPassword = senha || "senhaGeradaPeloSistema";
@@ -85,8 +85,69 @@ export const checkUserExists = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao cadastrar usuário", error: err });
-} }*/
-export const createUser = async (req: Request, res: Response) => {
-  console.log("Função createUser chamada!");
-  return res.status(201).json({ message: "Cadastro realizado (teste)!" });
+  }
+};
+
+// Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
+export const handleGoogleLogin = async (req: Request, res: Response) => {
+  const { name, email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email é obrigatório" });
+  }
+
+  try {
+    const db = await dbPromise;
+    const checkEmailQuery = "SELECT * FROM usuarios WHERE email = ?";
+    const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
+      email,
+    ]);
+
+    if (userExists.length > 0) {
+      // Usuário já existe, você pode retornar uma mensagem de sucesso
+      return res.status(200).json({ message: "Usuário do Google encontrado" });
+    } else {
+      // Usuário não existe, criar um novo registro
+      const insertQuery =
+        "INSERT INTO usuarios (name, email, senha) VALUES (?, ?, ?)";
+      // Defina uma senha padrão ou nula para usuários do Google,
+      // já que a senha real será gerenciada pelo Firebase
+      const [result] = await db.query(insertQuery, [name, email, null]);
+      return res
+        .status(201)
+        .json({ message: "Usuário do Google cadastrado", result });
+    }
+  } catch (err) {
+    console.error("Erro ao lidar com login do Google:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao lidar com login do Google", error: err });
+  }
+};
+
+// Função para buscar dados do usuário ------------------------------------------------------------------------------------------------------------
+
+export const getUserData = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email é obrigatório" });
+  }
+
+  try {
+    const db = await dbPromise;
+    const query = "SELECT name FROM usuarios WHERE email = ?";
+    const [results] = await db.query<RowDataPacket[]>(query, [email]);
+
+    if (results.length > 0) {
+      return res.status(200).json({ name: results[0].name });
+    } else {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+  } catch (err) {
+    console.error("Erro ao buscar dados do usuário:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao buscar dados do usuário", error: err });
+  }
 };

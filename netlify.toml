@@ -13,6 +13,6 @@
 [[headers]]
   for = "/api/*"
     [headers.values]
-      Access-Control-Allow-Origin = "https://megajr-front-end.vercel.app"
+      Access-Control-Allow-Origin = "https://megajr-front.netlify.app"
       Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
       Access-Control-Allow-Headers = "Content-Type, Authorization"
