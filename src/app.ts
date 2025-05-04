@@ -10,7 +10,11 @@ app.use((req, res, next) => {
 });
 
 console.log("Configurando CORS..."); // Adicione este log
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://megajr-front.netlify.app",
+  })
+);
 console.log("CORS configurado."); // Adicione este log
 app.use(express.json());
 app.use("/", userRoutes);
