@@ -4,7 +4,13 @@ import cors from "cors";
 
 const app = express();
 
-app.use(cors({ origin: "https://megajr-front.netlify.app" }));
+app.use(
+  cors({
+    origin: "https://megajr-front.netlify.app",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // Se você precisar de cookies ou autenticação com credenciais
+  })
+);
 
 console.log("CORS configurado"); // Mensagem de log atualizada
 app.use(express.json());
