@@ -1,8 +1,8 @@
 {
   "name": "todo-megajr-back",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.ts",
+  "description": "API backend do projeto TODO MEGA JR, com Express e MySQL",
+  "main": "dist/server.js",
   "engines": {
     "node": "18.0.0"
   },
@@ -17,7 +17,7 @@
     "url": "git+https://github.com/MEGA-JR-Grupo-3/megajr-back-end.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "MEGA JR - Grupo 3",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/MEGA-JR-Grupo-3/megajr-back-end/issues"
@@ -29,14 +29,14 @@
     "@types/node": "^22.15.3",
     "tsup": "^8.4.0",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "nodemon": "^3.1.10"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "firebase-admin": "^13.3.0",
-    "mysql2": "^3.14.1",
-    "nodemon": "^3.1.10"
+    "mysql2": "^3.14.1"
   }
 }
