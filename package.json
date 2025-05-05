@@ -8,7 +8,7 @@
   },
   "type": "commonjs",
   "scripts": {
-    "start": "node dist/server.cjs",
+    "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "build": "tsup src"
   },
