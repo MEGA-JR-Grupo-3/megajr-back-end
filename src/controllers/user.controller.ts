@@ -5,7 +5,7 @@ import { RowDataPacket } from "mysql2";
 // Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
 export const getUsers = async (_: Request, res: Response) => {
   const db = await dbPromise;
-  const q = "SELECT * FROM usuarios";
+  const q = "SELECT * FROM usuario";
   try {
     const [data] = await db.query<RowDataPacket[]>(q);
     return res.status(200).json(data);
@@ -26,7 +26,7 @@ export const checkUserExists = async (req: Request, res: Response) => {
   }
 
   const db = await dbPromise;
-  const q = "SELECT * FROM usuarios WHERE email = ?";
+  const q = "SELECT * FROM usuario WHERE email = ?";
   try {
     const [data] = await db.query<RowDataPacket[]>(q, [email]);
 
@@ -62,7 +62,7 @@ export const createUser = async (req: Request, res: Response) => {
 
   const db = await dbPromise;
   // Verificar se o e-mail já está registrado
-  const checkEmailQuery = "SELECT * FROM usuarios WHERE email = ?";
+  const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
   try {
     const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
       email,
@@ -74,7 +74,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     // Inserir novo usuário no banco de dados
     const insertQuery =
-      "INSERT INTO usuarios (name, email, senha) VALUES (?, ?, ?)";
+      "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
     const [result] = await db.query(insertQuery, [name, email, userPassword]);
 
     return res
@@ -98,7 +98,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
-    const checkEmailQuery = "SELECT * FROM usuarios WHERE email = ?";
+    const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
     const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
       email,
     ]);
@@ -109,7 +109,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
     } else {
       // Usuário não existe, criar um novo registro
       const insertQuery =
-        "INSERT INTO usuarios (name, email, senha) VALUES (?, ?, ?)";
+        "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
       // Defina uma senha padrão ou nula para usuários do Google,
       // já que a senha real será gerenciada pelo Firebase
       const [result] = await db.query(insertQuery, [name, email, null]);
@@ -136,7 +136,7 @@ export const getUserData = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
-    const query = "SELECT name FROM usuarios WHERE email = ?";
+    const query = "SELECT name FROM usuario WHERE email = ?";
     const [results] = await db.query<RowDataPacket[]>(query, [email]);
 
     if (results.length > 0) {
