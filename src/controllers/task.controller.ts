@@ -53,12 +53,10 @@ export const addTask = async (req: Request, res: Response) => {
     req.body;
 
   if (!titulo || !prioridade || !estado_tarefa || !email) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Título, prioridade, estado e email do usuário são obrigatórios.",
-      });
+    return res.status(400).json({
+      message:
+        "Título, prioridade, estado e email do usuário são obrigatórios.",
+    });
   }
 
   try {
@@ -84,18 +82,16 @@ export const addTask = async (req: Request, res: Response) => {
     const [result] = await db.query<ResultSetHeader>(sql, [
       titulo,
       descricao,
-      data_prazo,
+      data_prazo || null,
       prioridade,
       estado_tarefa,
       id_usuario,
     ]);
 
-    return res
-      .status(201)
-      .json({
-        message: "Tarefa adicionada com sucesso!",
-        insertId: result.insertId,
-      });
+    return res.status(201).json({
+      message: "Tarefa adicionada com sucesso!",
+      insertId: result.insertId,
+    });
   } catch (err) {
     console.error("Erro ao adicionar tarefa:", err);
     return res
