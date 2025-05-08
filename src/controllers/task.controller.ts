@@ -2,6 +2,7 @@ import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
+// BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
 export const searchTasks = async (req: Request, res: Response) => {
   const { query } = req.query;
 
@@ -26,6 +27,7 @@ export const searchTasks = async (req: Request, res: Response) => {
   }
 };
 
+// BUSCAR TAREFAS POR USUARIO-----------------------------------------------------------------------------------------------------
 export const getTasksByUser = async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -48,6 +50,7 @@ export const getTasksByUser = async (req: Request, res: Response) => {
   }
 };
 
+// ADICIONAR TAREFA---------------------------------------------------------------------------------------------------------------
 export const addTask = async (req: Request, res: Response) => {
   const { titulo, descricao, data_prazo, prioridade, estado_tarefa, email } =
     req.body;
@@ -97,5 +100,74 @@ export const addTask = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao adicionar tarefa", error: err });
+  }
+};
+
+//DELETAR TAREFA-----------------------------------------------------------------------------------------------------------------
+export const deleteTask = async (req: Request, res: Response) => {
+  const { id_tarefa } = req.params;
+
+  if (!id_tarefa) {
+    return res
+      .status(400)
+      .json({ message: "ID da tarefa é obrigatório para deletar." });
+  }
+
+  try {
+    const db = await dbPromise;
+    const [result] = await db.query<ResultSetHeader>(
+      "DELETE FROM tarefa WHERE id_tarefa = ?",
+      [id_tarefa]
+    );
+
+    if (result.affectedRows > 0) {
+      return res.status(200).json({ message: "Tarefa deletada com sucesso!" });
+    } else {
+      return res.status(404).json({ message: "Tarefa não encontrada." });
+    }
+  } catch (err) {
+    console.error("Erro ao deletar tarefa:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao deletar tarefa", error: err });
+  }
+};
+
+//ATUALIZAR TAREFA---------------------------------------------------------------------------------------------------------------------
+export const updateTaskStatus = async (req: Request, res: Response) => {
+  const { id_tarefa } = req.params;
+  const { estado_tarefa } = req.body;
+
+  if (!id_tarefa || !estado_tarefa) {
+    return res
+      .status(400)
+      .json({ message: "ID da tarefa e novo estado são obrigatórios." });
+  }
+
+  if (estado_tarefa !== "Pendente" && estado_tarefa !== "Finalizada") {
+    return res.status(400).json({
+      message: "Estado da tarefa deve ser 'Pendente' ou 'Finalizada'.",
+    });
+  }
+
+  try {
+    const db = await dbPromise;
+    const [result] = await db.query<ResultSetHeader>( // Tipagem para ResultSetHeader
+      "UPDATE tarefa SET estado_tarefa = ? WHERE id_tarefa = ?",
+      [estado_tarefa, id_tarefa]
+    );
+
+    if (result.affectedRows > 0) {
+      return res
+        .status(200)
+        .json({ message: "Estado da tarefa atualizado com sucesso!" });
+    } else {
+      return res.status(404).json({ message: "Tarefa não encontrada." });
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar estado da tarefa:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao atualizar estado da tarefa", error: err });
   }
 };

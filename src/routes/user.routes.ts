@@ -11,6 +11,8 @@ import {
   searchTasks,
   getTasksByUser,
   addTask,
+  deleteTask,
+  updateTaskStatus,
 } from "../controllers/task.controller.js";
 
 const router = express.Router();
@@ -42,3 +44,9 @@ router.post("/tasks", getTasksByUser);
 
 // Rota para adicionar uma nova tarefa
 router.post("/tasks/add", addTask);
+
+// Rota para deletar uma tarefa pelo ID
+router.delete("/tasks/:id_tarefa", deleteTask);
+
+// Rota para atualizar o estado de uma tarefa pelo ID
+router.put("/tasks/:id_tarefa", updateTaskStatus); // Ou PATCH
