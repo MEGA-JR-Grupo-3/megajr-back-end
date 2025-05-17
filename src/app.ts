@@ -2,15 +2,11 @@ import express from "express";
 import userRoutes from "./routes/user.routes.js";
 import cors from "cors";
 
-const preferred = "https://megajr-front.netlify.app";
-const fallback = "http://localhost:3000";
-const origin = preferred ?? fallback;
-
 const app = express();
 
 app.use(
   cors({
-    origin: origin,
+    origin: "*",
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
     credentials: true,
   })
