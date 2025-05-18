@@ -2,7 +2,7 @@
 
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { RowDataPacket, ResultSetHeader, PoolConnection } from "mysql2/promise";
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
 export const searchTasks = async (req: Request, res: Response) => {
@@ -38,8 +38,7 @@ export const getTasksByUser = async (req: Request, res: Response) => {
   }
 
   const db = await dbPromise;
-  const sql =
-    "SELECT t.* FROM tarefa t JOIN usuario u ON t.id_usuario = u.id_usuario WHERE u.email = ?";
+  const sql = `SELECT t.* FROM tarefa t JOIN usuario u ON t.id_usuario = u.id_usuario WHERE u.email = ? ORDER BY t.ordem ASC`;
 
   try {
     const [results] = await db.query<RowDataPacket[]>(sql, [email]);
@@ -230,5 +229,79 @@ export const updateTask = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao atualizar tarefa completa", error: err });
+  }
+};
+
+// REORDENAR TAREFAS-----------------------------------------------------------------------------------------------------
+export const reorderTasks = async (req: Request, res: Response) => {
+  const { email, tasks } = req.body;
+
+  if (!email || !Array.isArray(tasks) || tasks.length === 0) {
+    return res.status(400).json({
+      message:
+        "Dados inválidos para reordenar tarefas. Email e array de tarefas são obrigatórios.",
+    });
+  }
+
+  // Agora 'db' (que renomeei para 'pool' para clareza) é um Pool
+  const pool = await dbPromise; // Você pode manter 'db' se preferir, mas 'pool' é mais descritivo
+  let connection: PoolConnection | undefined; // <-- AQUI ESTÁ O AJUSTE PRINCIPAL NA TIPAGEM
+
+  try {
+    connection = await pool.getConnection(); // Obtém uma conexão do pool
+    await connection.beginTransaction(); // Inicia a transação nesta conexão
+
+    const [userRows] = await connection.query<RowDataPacket[]>(
+      "SELECT id_usuario FROM usuario WHERE email = ?",
+      [email]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const id_usuario = userRows[0].id_usuario;
+
+    for (const task of tasks) {
+      const { id_tarefa, ordem } = task;
+
+      if (
+        typeof id_tarefa === "undefined" ||
+        typeof ordem === "undefined" ||
+        typeof ordem !== "number"
+      ) {
+        throw new Error(
+          `Dados de tarefa inválidos: { id_tarefa: ${id_tarefa}, ordem: ${ordem} }`
+        );
+      }
+
+      await connection.query<ResultSetHeader>(
+        `UPDATE tarefa
+         SET ordem = ?
+         WHERE id_tarefa = ? AND id_usuario = ?;`,
+        [ordem, id_tarefa, id_usuario]
+      );
+    }
+
+    await connection.commit();
+    res
+      .status(200)
+      .json({ message: "Ordem das tarefas atualizada com sucesso!" });
+  } catch (err: any) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error("Erro ao reordenar tarefas:", err);
+    return res.status(500).json({
+      message: `Erro ao reordenar tarefas: ${
+        err.message || "Erro desconhecido."
+      }`,
+      error: err,
+    });
+  } finally {
+    if (connection) {
+      connection.release(); // Libera a conexão de volta para o pool
+    }
   }
 };
