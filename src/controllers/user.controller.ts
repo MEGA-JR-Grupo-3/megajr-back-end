@@ -89,7 +89,7 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 // Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
-// src/controllers/user.controller.ts
+
 export const handleGoogleLogin = async (req: Request, res: Response) => {
   const { name, email } = req.body;
   console.log(
@@ -115,7 +115,6 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
       const insertQuery =
         "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
 
-      // *** MUDANÇA CRÍTICA AQUI: Adicione <ResultSetHeader> após db.query ***
       const [insertResult] = await db.query<ResultSetHeader>(insertQuery, [
         name,
         email,
