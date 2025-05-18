@@ -30,24 +30,41 @@ export const searchTasks = async (req: Request, res: Response) => {
 };
 
 // BUSCAR TAREFAS POR USUARIO-----------------------------------------------------------------------------------------------------
+// src/controllers/task.controller.ts
+
 export const getTasksByUser = async (req: Request, res: Response) => {
   const { email } = req.body;
+  console.log("-> getTasksByUser: Requisição recebida para o email:", email);
 
   if (!email) {
+    console.log(
+      "-> getTasksByUser: Erro - Email não fornecido no corpo da requisição."
+    );
     return res.status(400).json({ message: "Email do usuário é obrigatório." });
   }
 
   const db = await dbPromise;
+  console.log("-> getTasksByUser: Pool de conexão obtido com sucesso.");
+
   const sql = `SELECT t.* FROM tarefa t JOIN usuario u ON t.id_usuario = u.id_usuario WHERE u.email = ? ORDER BY t.ordem ASC`;
+  console.log("-> getTasksByUser: SQL da consulta preparado.");
 
   try {
+    console.log("-> getTasksByUser: Tentando executar a consulta SQL...");
     const [results] = await db.query<RowDataPacket[]>(sql, [email]);
+    console.log(
+      "-> getTasksByUser: Consulta SQL executada com sucesso. Resultados:",
+      results.length
+    );
     return res.status(200).json(results);
-  } catch (err) {
-    console.error("Erro ao buscar tarefas do usuário:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao buscar tarefas do usuário", error: err });
+  } catch (err: any) {
+    console.error("-> getTasksByUser: ERRO CRÍTICO no bloco try-catch:", err);
+    console.error("-> getTasksByUser: Mensagem de erro:", err.message);
+
+    return res.status(500).json({
+      message: "Erro ao buscar tarefas do usuário",
+      error: err.message || "Erro desconhecido",
+    });
   }
 };
 
