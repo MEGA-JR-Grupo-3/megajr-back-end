@@ -1,6 +1,6 @@
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
-import { RowDataPacket } from "mysql2";
+import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 
 // Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
 export const getUsers = async (_: Request, res: Response) => {
@@ -89,39 +89,68 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 // Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
+// src/controllers/user.controller.ts
 export const handleGoogleLogin = async (req: Request, res: Response) => {
   const { name, email } = req.body;
+  console.log(
+    "-> handleGoogleLogin: Tentativa de login/cadastro Google para email:",
+    email
+  );
+  console.log("-> handleGoogleLogin: Nome recebido no body:", name);
 
   if (!email) {
-    return res.status(400).json({ message: "Email é obrigatório" });
+    console.log("-> handleGoogleLogin: Erro - Email não fornecido.");
+    return res.status(400).json({ message: "Email é obrigatório." });
   }
 
+  const db = await dbPromise;
   try {
-    const db = await dbPromise;
-    const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
-    const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
-      email,
-    ]);
+    const [userExists] = await db.query<RowDataPacket[]>(
+      "SELECT id_usuario FROM usuario WHERE email = ?",
+      [email]
+    );
 
-    if (userExists.length > 0) {
-      // Usuário já existe, você pode retornar uma mensagem de sucesso
-      return res.status(200).json({ message: "Usuário do Google encontrado" });
-    } else {
-      // Usuário não existe, criar um novo registro
+    if (userExists.length === 0) {
+      console.log("-> handleGoogleLogin: Usuário não existe, criando novo...");
       const insertQuery =
         "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
-      // Defina uma senha padrão ou nula para usuários do Google,
-      // já que a senha real será gerenciada pelo Firebase
-      const [result] = await db.query(insertQuery, [name, email, null]);
-      return res
-        .status(201)
-        .json({ message: "Usuário do Google cadastrado", result });
+
+      // *** MUDANÇA CRÍTICA AQUI: Adicione <ResultSetHeader> após db.query ***
+      const [insertResult] = await db.query<ResultSetHeader>(insertQuery, [
+        name,
+        email,
+        null,
+      ]);
+
+      console.log(
+        "-> handleGoogleLogin: Usuário criado com sucesso! ID:",
+        insertResult.insertId
+      );
+      return res.status(201).json({
+        message: "Usuário Google registrado com sucesso!",
+        user: { id_usuario: insertResult.insertId, name: name, email: email },
+      });
+    } else {
+      console.log("-> handleGoogleLogin: Usuário já existe, logando.");
+      return res.status(200).json({
+        message: "Usuário Google encontrado",
+        user: {
+          id_usuario: userExists[0].id_usuario,
+          name: userExists[0].name,
+          email: userExists[0].email,
+        },
+      });
     }
-  } catch (err) {
-    console.error("Erro ao lidar com login do Google:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao lidar com login do Google", error: err });
+  } catch (err: any) {
+    console.error(
+      "-> handleGoogleLogin: ERRO CRÍTICO no bloco try-catch:",
+      err
+    );
+    console.error("-> handleGoogleLogin: Mensagem de erro EXATA:", err.message);
+    return res.status(500).json({
+      message: "Erro ao lidar com login do Google.",
+      error: err.message || "Erro desconhecido",
+    });
   }
 };
 
