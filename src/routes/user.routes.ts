@@ -13,7 +13,8 @@ import {
   addTask,
   deleteTask,
   updateTaskStatus,
-  updateTask, // <-- 1. Adicione a importação da nova função updateTask
+  updateTask,
+  reorderTasks,
 } from "../controllers/task.controller.js";
 
 const router = express.Router();
@@ -40,17 +41,20 @@ export default router;
 // Rota para buscar tarefas com filtro por título
 router.get("/tasks/search", searchTasks);
 
-// Rota para pegar todas as tarefas de um usuário (existente)
-router.post("/tasks", getTasksByUser);
-
 // Rota para adicionar uma nova tarefa
 router.post("/tasks/add", addTask);
 
-// Rota para deletar uma tarefa pelo ID
-router.delete("/tasks/:id_tarefa", deleteTask);
+// Rota para pegar todas as tarefas de um usuário (existente)
+router.post("/tasks", getTasksByUser);
+
+// Rota para reordenar tarefas
+router.put("/tasks/reorder", reorderTasks);
 
 // 2. Modifique a rota existente para atualização de status, tornando-a mais específica
 router.put("/tasks/:id_tarefa/status", updateTaskStatus);
 
 // 3. Adicione a nova rota para ATUALIZAÇÃO COMPLETA da tarefa
 router.put("/tasks/:id_tarefa", updateTask);
+
+// Rota para deletar uma tarefa pelo ID
+router.delete("/tasks/:id_tarefa", deleteTask);
