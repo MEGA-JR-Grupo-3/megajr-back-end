@@ -1,3 +1,5 @@
+// src/controllers/task.controller.ts
+
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
@@ -78,14 +80,14 @@ export const addTask = async (req: Request, res: Response) => {
     const id_usuario = userRows[0].id_usuario;
 
     const sql = `
-      INSERT INTO tarefa (titulo, descricao, data_prazo, prioridade, estado_tarefa, id_usuario)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
+            INSERT INTO tarefa (titulo, descricao, data_prazo, prioridade, estado_tarefa, id_usuario)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `;
 
     const [result] = await db.query<ResultSetHeader>(sql, [
       titulo,
       descricao,
-      data_prazo || null,
+      data_prazo || null, // Garante que data_prazo seja null se vazio
       prioridade,
       estado_tarefa,
       id_usuario,
@@ -133,7 +135,7 @@ export const deleteTask = async (req: Request, res: Response) => {
   }
 };
 
-//ATUALIZAR TAREFA---------------------------------------------------------------------------------------------------------------------
+// ATUALIZAR APENAS O ESTADO DA TAREFA (EXISTENTE)-----------------------------------------------------------------------------------------------------
 export const updateTaskStatus = async (req: Request, res: Response) => {
   const { id_tarefa } = req.params;
   const { estado_tarefa } = req.body;
@@ -152,7 +154,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
-    const [result] = await db.query<ResultSetHeader>( // Tipagem para ResultSetHeader
+    const [result] = await db.query<ResultSetHeader>(
       "UPDATE tarefa SET estado_tarefa = ? WHERE id_tarefa = ?",
       [estado_tarefa, id_tarefa]
     );
@@ -169,5 +171,64 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao atualizar estado da tarefa", error: err });
+  }
+};
+
+// ATUALIZAR TAREFA COMPLETA-----------------------------------------------------------------------------------------------------
+export const updateTask = async (req: Request, res: Response) => {
+  // O ID da tarefa virá dos parâmetros da URL
+  const { id_tarefa } = req.params;
+  // Os dados atualizados virão do corpo da requisição
+  const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
+
+  if (!id_tarefa || !titulo || !prioridade || !estado_tarefa) {
+    return res.status(400).json({
+      message:
+        "ID da tarefa, título, prioridade e estado da tarefa são obrigatórios.",
+    });
+  }
+
+  try {
+    const db = await dbPromise;
+
+    const formattedDataPrazo = data_prazo
+      ? new Date(data_prazo).toISOString().split("T")[0]
+      : null;
+
+    // 2. Consulta ao Banco de Dados para Atualizar a Tarefa
+    const sql = `
+            UPDATE tarefa
+            SET
+                titulo = ?,
+                descricao = ?,
+                data_prazo = ?,
+                prioridade = ?,
+                estado_tarefa = ?
+            WHERE
+                id_tarefa = ?;
+        `;
+    const values = [
+      titulo,
+      descricao,
+      formattedDataPrazo,
+      prioridade,
+      estado_tarefa,
+      id_tarefa,
+    ];
+
+    const [result] = await db.query<ResultSetHeader>(sql, values);
+
+    if (result.affectedRows > 0) {
+      return res
+        .status(200)
+        .json({ message: "Tarefa atualizada com sucesso!" });
+    } else {
+      return res.status(404).json({ message: "Tarefa não encontrada." });
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar tarefa completa:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao atualizar tarefa completa", error: err });
   }
 };
