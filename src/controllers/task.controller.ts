@@ -5,27 +5,52 @@ import { Request, Response } from "express";
 import { RowDataPacket, ResultSetHeader, PoolConnection } from "mysql2/promise";
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
+
 export const searchTasks = async (req: Request, res: Response) => {
-  const { query } = req.query;
-
-  if (!query) {
-    return res
-      .status(400)
-      .json({ message: "O termo de pesquisa é obrigatório." });
-  }
-
-  const db = await dbPromise;
-  const sql = "SELECT * FROM tarefa WHERE titulo LIKE ?";
-  const searchTerm = `%${query}%`; // Adiciona curingas para busca "contém"
-
   try {
-    const [results] = await db.query<RowDataPacket[]>(sql, [searchTerm]);
-    return res.status(200).json(results);
+    const { email, query } = req.body;
+
+    if (
+      !email ||
+      typeof email !== "string" ||
+      !query ||
+      typeof query !== "string"
+    ) {
+      return res.status(400).json({
+        message:
+          "Email do usuário e termo de pesquisa (query) são obrigatórios e devem ser strings.",
+      });
+    }
+
+    const db = await dbPromise;
+    const [userRows] = await db.query<RowDataPacket[]>(
+      "SELECT id_usuario FROM usuario WHERE email = ?",
+      [email]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const userId = userRows[0].id_usuario;
+    const sql = "SELECT * FROM tarefa WHERE id_usuario = ? AND titulo LIKE ?";
+    const searchTerm = `%${query}%`;
+
+    const [results] = await db.query<RowDataPacket[]>(sql, [
+      userId,
+      searchTerm,
+    ]);
+
+    if (results.length > 0) {
+      return res.status(200).json(results);
+    } else {
+      return res.status(200).json([]);
+    }
   } catch (err) {
     console.error("Erro ao buscar tarefas:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao buscar tarefas", error: err });
+    return res.status(500).json({
+      message: "Erro interno do servidor ao pesquisar tarefas.",
+      error: err,
+    });
   }
 };
 
