@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -14,15 +8,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tarefa {
+  id_tarefa    Int                @id @default(autoincrement())
+  titulo       String             @db.VarChar(120)
+  descricao    String?
+  data_criacao DateTime?          @default(now()) @db.Timestamp(6)
+  data_prazo   DateTime?          @db.Timestamp(6)
+  prioridade   prioridade_tarefa? @default(Normal)
+  concluido    Boolean?           @default(false)
+  id_usuario   Int
+  usuario      usuario            @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
-// prisma/schema.prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL") // Defina no .env
+  @@index([concluido], map: "idx_tarefa_concluido")
+  @@index([prioridade], map: "idx_tarefa_prioridade")
+  @@index([id_usuario], map: "idx_tarefa_usuario")
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model usuario {
+  id_usuario  Int      @id @default(autoincrement())
+  nome        String   @db.VarChar(100)
+  email       String   @unique
+  senha       String
+  foto_perfil String?
+  tarefa      tarefa[]
+}
+
+enum estado_tarefa {
+  Pendente
+  Finalizada
+}
+
+enum prioridade_tarefa {
+  Baixa
+  Normal
+  Alta
+  Urgente
 }

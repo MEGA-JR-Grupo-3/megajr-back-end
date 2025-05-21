@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tarefa {
+  id_tarefa    Int                @id @default(autoincrement())
+  titulo       String             @db.VarChar(120)
+  descricao    String?
+  data_criacao DateTime?          @default(now()) @db.Timestamp(6)
+  data_prazo   DateTime?          @db.Timestamp(6)
+  prioridade   prioridade_tarefa? @default(Normal)
+  concluido    Boolean?           @default(false)
+  id_usuario   Int
+  usuario      usuario            @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@index([concluido], map: "idx_tarefa_concluido")
+  @@index([prioridade], map: "idx_tarefa_prioridade")
+  @@index([id_usuario], map: "idx_tarefa_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model usuario {
+  id_usuario  Int      @id @default(autoincrement())
+  nome        String   @db.VarChar(100)
+  email       String   @unique
+  senha       String
+  foto_perfil String?
+  tarefa      tarefa[]
+}
+
+enum estado_tarefa {
+  Pendente
+  Finalizada
+}
+
+enum prioridade_tarefa {
+  Baixa
+  Normal
+  Alta
+  Urgente
+}
