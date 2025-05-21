@@ -1,181 +1,191 @@
-import { dbPromise } from "../db/connection.js";
-import { Request, Response } from "express";
-import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
+import { Request, Response } from "express"; // import do express
+import prisma from '../db/connection'; // import do prisma cliente
 
-// Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
-export const getUsers = async (_: Request, res: Response) => {
-  const db = await dbPromise;
-  const q = "SELECT * FROM usuario";
-  try {
-    const [data] = await db.query<RowDataPacket[]>(q);
-    return res.status(200).json(data);
-  } catch (err) {
-    console.error("Erro ao buscar usuários:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao buscar usuários", error: err });
-  }
-};
-
-// Função para verificar se o usuário já existe ------------------------------------------------------------------------------------------------------------
-export const checkUserExists = async (req: Request, res: Response) => {
-  const { email } = req.query;
-
-  if (!email) {
-    return res.status(400).json({ message: "Email é obrigatório" });
-  }
-
-  const db = await dbPromise;
-  const q = "SELECT * FROM usuario WHERE email = ?";
-  try {
-    const [data] = await db.query<RowDataPacket[]>(q, [email]);
-
-    if (data.length > 0) {
-      return res
-        .status(200)
-        .json({ exists: true, message: "Usuário já existe" });
-    } else {
-      return res
-        .status(200)
-        .json({ exists: false, message: "Usuário não encontrado" });
-    }
-  } catch (err) {
-    console.error("Erro ao verificar usuário:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao verificar usuário", error: err });
-  }
-};
-
-// Função para cadastrar um novo usuário  ------------------------------------------------------------------------------------------------------------
-export const createUser = async (req: Request, res: Response) => {
-  const { name, email, senha } = req.body;
-
-  const userPassword = senha || "senhaGeradaPeloSistema";
-
-  // Validação básica de campos
-  if (!name || !email || !userPassword) {
-    return res
-      .status(400)
-      .json({ message: "Todos os campos são obrigatórios" });
-  }
-
-  const db = await dbPromise;
-  // Verificar se o e-mail já está registrado
-  const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
-  try {
-    const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
-      email,
-    ]);
-
-    if (userExists.length > 0) {
-      return res.status(409).json({ message: "Email já cadastrado" });
-    }
-
-    // Inserir novo usuário no banco de dados
-    const insertQuery =
-      "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
-    const [result] = await db.query(insertQuery, [name, email, userPassword]);
-
-    return res
-      .status(201)
-      .json({ message: "Usuário cadastrado com sucesso!", result });
-  } catch (err) {
-    console.error("Erro ao cadastrar usuário:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao cadastrar usuário", error: err });
-  }
-};
-
-// Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
-
-export const handleGoogleLogin = async (req: Request, res: Response) => {
-  const { name, email } = req.body;
-  console.log(
-    "-> handleGoogleLogin: Tentativa de login/cadastro Google para email:",
-    email
-  );
-  console.log("-> handleGoogleLogin: Nome recebido no body:", name);
-
-  if (!email) {
-    console.log("-> handleGoogleLogin: Erro - Email não fornecido.");
-    return res.status(400).json({ message: "Email é obrigatório." });
-  }
-
-  const db = await dbPromise;
-  try {
-    const [userExists] = await db.query<RowDataPacket[]>(
-      "SELECT id_usuario FROM usuario WHERE email = ?",
-      [email]
-    );
-
-    if (userExists.length === 0) {
-      console.log("-> handleGoogleLogin: Usuário não existe, criando novo...");
-      const insertQuery =
-        "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
-
-      const [insertResult] = await db.query<ResultSetHeader>(insertQuery, [
-        name,
-        email,
-        null,
-      ]);
-
-      console.log(
-        "-> handleGoogleLogin: Usuário criado com sucesso! ID:",
-        insertResult.insertId
-      );
-      return res.status(201).json({
-        message: "Usuário Google registrado com sucesso!",
-        user: { id_usuario: insertResult.insertId, name: name, email: email },
+export class UserController {
+  // Busca todos os usuários (GET /users)
+  static async getUsers(_: Request, res: Response) {
+    try {
+      const users = await prisma.usuario.findMany({
+        select: {
+          id_usuario: true,
+          nome: true,
+          email: true,
+          // Não retornamos a senha por segurança
+        }
       });
-    } else {
-      console.log("-> handleGoogleLogin: Usuário já existe, logando.");
+      return res.status(200).json(users);
+    } catch (err) {
+      console.error("Erro ao buscar usuários:", err);
+      return res.status(500).json({
+        message: "Erro ao buscar usuários",
+        error: err instanceof Error ? err.message : "Erro desconhecido"
+      });
+    }
+  }
+
+  // Verifica se usuário existe (GET /users/check?email=...)
+  static async checkUserExists(req: Request, res: Response) {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+
+    try {
+      const user = await prisma.usuario.findUnique({
+        where: { email: email.toString() }
+      });
+
+      return res.status(200).json({
+        exists: !!user,
+        message: user ? "Usuário já existe" : "Usuário não encontrado"
+      });
+    } catch (err) {
+      console.error("Erro ao verificar usuário:", err);
+      return res.status(500).json({
+        message: "Erro ao verificar usuário",
+        error: err instanceof Error ? err.message : "Erro desconhecido"
+      });
+    }
+  }
+
+  // Cria novo usuário (POST /users)
+  static async createUser(req: Request, res: Response) {
+    const { nome, email, senha } = req.body;
+
+    if (!nome || !email || !senha) {
+      return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+    }
+
+    try {
+      // Verifica se email já existe
+      const userExists = await prisma.usuario.findUnique({
+        where: { email }
+      });
+
+      if (userExists) {
+        return res.status(409).json({ message: "Email já cadastrado" });
+      }
+
+      // Cria o usuário (com hash de senha - você deve implementar isso)
+      const newUser = await prisma.usuario.create({
+        data: {
+          nome,
+          email,
+          senha: await hashPassword(senha) // Implemente esta função
+        },
+        select: {
+          id_usuario: true,
+          nome: true,
+          email: true
+          // Não retornamos a senha
+        }
+      });
+
+      return res.status(201).json({
+        message: "Usuário cadastrado com sucesso!",
+        user: newUser
+      });
+    } catch (err) {
+      console.error("Erro ao cadastrar usuário:", err);
+      return res.status(500).json({
+        message: "Erro ao cadastrar usuário",
+        error: err instanceof Error ? err.message : "Erro desconhecido"
+      });
+    }
+  }
+
+  // Login/Cadastro com Google (POST /users/google)
+  static async handleGoogleLogin(req: Request, res: Response) {
+    const { nome, email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+
+    try {
+      // Verifica se usuário existe
+      let user = await prisma.usuario.findUnique({
+        where: { email }
+      });
+
+      if (!user) {
+        // Cria novo usuário para login Google
+        user = await prisma.usuario.create({
+          data: {
+            nome,
+            email,
+            // Senha null para usuários Google
+            senha: null, // no db coloquei como a senha nao podendo ser nula, tenho que ver como arrumar isso
+            google_auth: true // Adicione esta coluna ao seu schema
+          },
+          select: {
+            id_usuario: true,
+            nome: true,
+            email: true
+          }
+        });
+        return res.status(201).json({
+          message: "Usuário Google registrado com sucesso!",
+          user
+        });
+      }
+
       return res.status(200).json({
         message: "Usuário Google encontrado",
         user: {
-          id_usuario: userExists[0].id_usuario,
-          name: userExists[0].name,
-          email: userExists[0].email,
-        },
+          id_usuario: user.id_usuario,
+          nome: user.nome,
+          email: user.email
+        }
+      });
+    } catch (err) {
+      console.error("Erro no login Google:", err);
+      return res.status(500).json({
+        message: "Erro ao lidar com login do Google",
+        error: err instanceof Error ? err.message : "Erro desconhecido"
       });
     }
-  } catch (err: any) {
-    console.error(
-      "-> handleGoogleLogin: ERRO CRÍTICO no bloco try-catch:",
-      err
-    );
-    console.error("-> handleGoogleLogin: Mensagem de erro EXATA:", err.message);
-    return res.status(500).json({
-      message: "Erro ao lidar com login do Google.",
-      error: err.message || "Erro desconhecido",
-    });
-  }
-};
-
-// Função para buscar dados do usuário ------------------------------------------------------------------------------------------------------------
-
-export const getUserData = async (req: Request, res: Response) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: "Email é obrigatório" });
   }
 
-  try {
-    const db = await dbPromise;
-    const query = "SELECT name FROM usuario WHERE email = ?";
-    const [results] = await db.query<RowDataPacket[]>(query, [email]);
+  // Busca dados do usuário (POST /users/data)
+  static async getUserData(req: Request, res: Response) {
+    const { email } = req.body;
 
-    if (results.length > 0) {
-      return res.status(200).json({ name: results[0].name });
-    } else {
-      return res.status(404).json({ message: "Usuário não encontrado" });
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
     }
-  } catch (err) {
-    console.error("Erro ao buscar dados do usuário:", err);
-    return res
-      .status(500)
-      .json({ message: "Erro ao buscar dados do usuário", error: err });
+
+    try {
+      const user = await prisma.usuario.findUnique({
+        where: { email },
+        select: {
+          id_usuario: true,
+          nome: true,
+          email: true
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      return res.status(200).json(user);
+    } catch (err) {
+      console.error("Erro ao buscar dados do usuário:", err);
+      return res.status(500).json({
+        message: "Erro ao buscar dados do usuário",
+        error: err instanceof Error ? err.message : "Erro desconhecido"
+      });
+    }
   }
-};
+}
+
+// Função auxiliar para hash de senha (implemente conforme sua lib de preferência)
+async function hashPassword(password: string): Promise<string> {
+  // Exemplo com bcrypt (instale: npm install bcrypt @types/bcrypt)
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  return hashedPassword;
+}
+// instalar npm install bcrypt @types/bcrypt para codificar senhas

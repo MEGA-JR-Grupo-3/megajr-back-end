@@ -4,3 +4,186 @@ node_modules
 dist
 
 netlify.toml".env" 
+
+Como estava user.controller:
+export async function getUsers() {
+  return await prisma.user.findMany();
+}
+
+// Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
+export const getUsers = async (_: Request, res: Response) => {
+  const db = await dbPromise;
+  const q = "SELECT * FROM usuario";
+  try {
+    const [data] = await db.query<RowDataPacket[]>(q);
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error("Erro ao buscar usuários:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao buscar usuários", error: err });
+  }
+};
+
+// Função para verificar se o usuário já existe ------------------------------------------------------------------------------------------------------------
+export const checkUserExists = async (req: Request, res: Response) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email é obrigatório" });
+  }
+
+  const db = await dbPromise;
+  const q = "SELECT * FROM usuario WHERE email = ?";
+  try {
+    const [data] = await db.query<RowDataPacket[]>(q, [email]);
+
+    if (data.length > 0) {
+      return res
+        .status(200)
+        .json({ exists: true, message: "Usuário já existe" });
+    } else {
+      return res
+        .status(200)
+        .json({ exists: false, message: "Usuário não encontrado" });
+    }
+  } catch (err) {
+    console.error("Erro ao verificar usuário:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao verificar usuário", error: err });
+  }
+};
+
+// Função para cadastrar um novo usuário  ------------------------------------------------------------------------------------------------------------
+export const createUser = async (req: Request, res: Response) => {
+  const { name, email, senha } = req.body;
+
+  const userPassword = senha || "senhaGeradaPeloSistema";
+
+  // Validação básica de campos
+  if (!name || !email || !userPassword) {
+    return res
+      .status(400)
+      .json({ message: "Todos os campos são obrigatórios" });
+  }
+
+  const db = await dbPromise;
+  // Verificar se o e-mail já está registrado
+  const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
+  try {
+    const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
+      email,
+    ]);
+
+    if (userExists.length > 0) {
+      return res.status(409).json({ message: "Email já cadastrado" });
+    }
+
+    // Inserir novo usuário no banco de dados
+    const insertQuery =
+      "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
+    const [result] = await db.query(insertQuery, [name, email, userPassword]);
+
+    return res
+      .status(201)
+      .json({ message: "Usuário cadastrado com sucesso!", result });
+  } catch (err) {
+    console.error("Erro ao cadastrar usuário:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao cadastrar usuário", error: err });
+  }
+};
+
+// Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
+
+export const handleGoogleLogin = async (req: Request, res: Response) => {
+  const { name, email } = req.body;
+  console.log(
+    "-> handleGoogleLogin: Tentativa de login/cadastro Google para email:",
+    email
+  );
+  console.log("-> handleGoogleLogin: Nome recebido no body:", name);
+
+  if (!email) {
+    console.log("-> handleGoogleLogin: Erro - Email não fornecido.");
+    return res.status(400).json({ message: "Email é obrigatório." });
+  }
+
+  const db = await dbPromise;
+  try {
+    const [userExists] = await db.query<RowDataPacket[]>(
+      "SELECT id_usuario FROM usuario WHERE email = ?",
+      [email]
+    );
+
+    if (userExists.length === 0) {
+      console.log("-> handleGoogleLogin: Usuário não existe, criando novo...");
+      const insertQuery =
+        "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
+
+      const [insertResult] = await db.query<ResultSetHeader>(insertQuery, [
+        name,
+        email,
+        null,
+      ]);
+
+      console.log(
+        "-> handleGoogleLogin: Usuário criado com sucesso! ID:",
+        insertResult.insertId
+      );
+      return res.status(201).json({
+        message: "Usuário Google registrado com sucesso!",
+        user: { id_usuario: insertResult.insertId, name: name, email: email },
+      });
+    } else {
+      console.log("-> handleGoogleLogin: Usuário já existe, logando.");
+      return res.status(200).json({
+        message: "Usuário Google encontrado",
+        user: {
+          id_usuario: userExists[0].id_usuario,
+          name: userExists[0].name,
+          email: userExists[0].email,
+        },
+      });
+    }
+  } catch (err: any) {
+    console.error(
+      "-> handleGoogleLogin: ERRO CRÍTICO no bloco try-catch:",
+      err
+    );
+    console.error("-> handleGoogleLogin: Mensagem de erro EXATA:", err.message);
+    return res.status(500).json({
+      message: "Erro ao lidar com login do Google.",
+      error: err.message || "Erro desconhecido",
+    });
+  }
+};
+
+// Função para buscar dados do usuário ------------------------------------------------------------------------------------------------------------
+
+export const getUserData = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email é obrigatório" });
+  }
+
+  try {
+    const db = await dbPromise;
+    const query = "SELECT name FROM usuario WHERE email = ?";
+    const [results] = await db.query<RowDataPacket[]>(query, [email]);
+
+    if (results.length > 0) {
+      return res.status(200).json({ name: results[0].name });
+    } else {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+  } catch (err) {
+    console.error("Erro ao buscar dados do usuário:", err);
+    return res
+      .status(500)
+      .json({ message: "Erro ao buscar dados do usuário", error: err });
+  }
+};

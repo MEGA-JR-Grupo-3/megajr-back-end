@@ -1,8 +1,5 @@
-// src/controllers/task.controller.ts
-
-import { dbPromise } from "../db/connection.js";
-import { Request, Response } from "express";
-import { RowDataPacket, ResultSetHeader, PoolConnection } from "mysql2/promise";
+import { Request, Response } from "express"; // import do express
+import prisma from '../db/connection'; // import do prisma cliente
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
 export const searchTasks = async (req: Request, res: Response) => {
