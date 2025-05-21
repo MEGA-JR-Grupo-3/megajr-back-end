@@ -6,7 +6,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://megajr-front.netlify.app",
+    origin: "*", //"https://megajr-front.netlify.app",
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
     credentials: true,
   })
