@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -35,11 +34,6 @@ model usuario {
   senha       String
   foto_perfil String?
   tarefa      tarefa[]
-}
-
-enum estado_tarefa {
-  Pendente
-  Finalizada
 }
 
 enum prioridade_tarefa {
