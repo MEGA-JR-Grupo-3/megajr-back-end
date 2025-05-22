@@ -1,22 +1,32 @@
 // src/db/connection.ts
-import mysql from "mysql2/promise";
+import { Pool } from "pg";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 async function createDatabaseConnectionPool() {
-  const pool = mysql.createPool({
-    uri: process.env.DATABASE_URL as string,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+  const databaseUrl = process.env.DATABASE_URL as string;
+
+  if (!databaseUrl) {
+    console.error("Variável de ambiente DATABASE_URL não definida!");
+    process.exit(1);
+  }
+
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
   });
 
   try {
-    await pool.getConnection();
-    console.log("Pool de conexão MySQL criado e conectado com sucesso!");
+    await pool.query("SELECT 1");
+    console.log("Pool de conexão PostgreSQL criado e conectado com sucesso!");
   } catch (error) {
-    console.error("Erro ao conectar ao banco de dados usando o pool:", error);
+    console.error(
+      "Erro ao conectar ao banco de dados PostgreSQL usando o pool:",
+      error
+    );
     process.exit(1);
   }
 

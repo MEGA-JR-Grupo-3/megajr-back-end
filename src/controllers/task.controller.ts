@@ -1,8 +1,6 @@
-// src/controllers/task.controller.ts
-
+import { Pool, QueryResult } from "pg";
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
-import { RowDataPacket, ResultSetHeader, PoolConnection } from "mysql2/promise";
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
 
@@ -23,22 +21,24 @@ export const searchTasks = async (req: Request, res: Response) => {
     }
 
     const db = await dbPromise;
-    const [userRows] = await db.query<RowDataPacket[]>(
-      "SELECT id_usuario FROM usuario WHERE email = ?",
+    const userResult = await db.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
       [email]
     );
+
+    const userRows: any[] = userResult.rows;
 
     if (userRows.length === 0) {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
     const userId = userRows[0].id_usuario;
-    const sql = "SELECT * FROM tarefa WHERE id_usuario = ? AND titulo LIKE ?";
+
+    const sql =
+      "SELECT * FROM tarefa WHERE id_usuario = $1 AND titulo ILIKE $2";
     const searchTerm = `%${query}%`;
 
-    const [results] = await db.query<RowDataPacket[]>(sql, [
-      userId,
-      searchTerm,
-    ]);
+    const tasksResult = await db.query(sql, [userId, searchTerm]);
+    const results: any[] = tasksResult.rows;
 
     if (results.length > 0) {
       return res.status(200).json(results);
@@ -55,7 +55,6 @@ export const searchTasks = async (req: Request, res: Response) => {
 };
 
 // BUSCAR TAREFAS POR USUARIO-----------------------------------------------------------------------------------------------------
-// src/controllers/task.controller.ts
 
 export const getTasksByUser = async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -71,12 +70,14 @@ export const getTasksByUser = async (req: Request, res: Response) => {
   const db = await dbPromise;
   console.log("-> getTasksByUser: Pool de conexão obtido com sucesso.");
 
-  const sql = `SELECT t.* FROM tarefa t JOIN usuario u ON t.id_usuario = u.id_usuario WHERE u.email = ? ORDER BY t.ordem ASC`;
+  const sql = `SELECT t.* FROM tarefa t JOIN usuario u ON t.id_usuario = u.id_usuario WHERE u.email = $1 ORDER BY t.ordem ASC`;
   console.log("-> getTasksByUser: SQL da consulta preparado.");
 
   try {
     console.log("-> getTasksByUser: Tentando executar a consulta SQL...");
-    const [results] = await db.query<RowDataPacket[]>(sql, [email]);
+    const tasksResult = await db.query(sql, [email]);
+    const results: any[] = tasksResult.rows;
+
     console.log(
       "-> getTasksByUser: Consulta SQL executada com sucesso. Resultados:",
       results.length
@@ -108,11 +109,11 @@ export const addTask = async (req: Request, res: Response) => {
   try {
     const db = await dbPromise;
 
-    // Primeiro, precisamos obter o id_usuario com base no email
-    const [userRows] = await db.query<RowDataPacket[]>(
-      "SELECT id_usuario FROM usuario WHERE email = ?",
+    const userResult = await db.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
       [email]
     );
+    const userRows: any[] = userResult.rows;
 
     if (!userRows || userRows.length === 0) {
       return res.status(404).json({ message: "Usuário não encontrado." });
@@ -121,22 +122,28 @@ export const addTask = async (req: Request, res: Response) => {
     const id_usuario = userRows[0].id_usuario;
 
     const sql = `
-            INSERT INTO tarefa (titulo, descricao, data_prazo, prioridade, estado_tarefa, id_usuario)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
+             INSERT INTO tarefa (titulo, descricao, data_prazo, prioridade, estado_tarefa, id_usuario)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id_tarefa;
+         `;
 
-    const [result] = await db.query<ResultSetHeader>(sql, [
+    const taskInsertResult = await db.query(sql, [
       titulo,
       descricao,
-      data_prazo || null, // Garante que data_prazo seja null se vazio
+      data_prazo || null,
       prioridade,
       estado_tarefa,
       id_usuario,
     ]);
 
+    const insertedTaskId =
+      taskInsertResult.rows && taskInsertResult.rows.length > 0
+        ? taskInsertResult.rows[0].id_tarefa
+        : null;
+
     return res.status(201).json({
       message: "Tarefa adicionada com sucesso!",
-      insertId: result.insertId,
+      insertId: insertedTaskId,
     });
   } catch (err) {
     console.error("Erro ao adicionar tarefa:", err);
@@ -150,20 +157,20 @@ export const addTask = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
   const { id_tarefa } = req.params;
 
-  if (!id_tarefa) {
-    return res
-      .status(400)
-      .json({ message: "ID da tarefa é obrigatório para deletar." });
+  const taskIdNum = parseInt(id_tarefa as string);
+  if (isNaN(taskIdNum)) {
+    return res.status(400).json({ message: "ID da tarefa inválido." });
   }
 
   try {
     const db = await dbPromise;
-    const [result] = await db.query<ResultSetHeader>(
-      "DELETE FROM tarefa WHERE id_tarefa = ?",
-      [id_tarefa]
+    const deleteResult = await db.query(
+      "DELETE FROM tarefa WHERE id_tarefa = $1",
+      [taskIdNum]
     );
 
-    if (result.affectedRows > 0) {
+    if (deleteResult.rowCount! > 0) {
+      // <-- Adicionado '!' aqui
       return res.status(200).json({ message: "Tarefa deletada com sucesso!" });
     } else {
       return res.status(404).json({ message: "Tarefa não encontrada." });
@@ -181,10 +188,11 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   const { id_tarefa } = req.params;
   const { estado_tarefa } = req.body;
 
-  if (!id_tarefa || !estado_tarefa) {
-    return res
-      .status(400)
-      .json({ message: "ID da tarefa e novo estado são obrigatórios." });
+  const taskIdNum = parseInt(id_tarefa as string);
+  if (isNaN(taskIdNum) || !estado_tarefa) {
+    return res.status(400).json({
+      message: "ID da tarefa e novo estado são obrigatórios e válidos.",
+    });
   }
 
   if (estado_tarefa !== "Pendente" && estado_tarefa !== "Finalizada") {
@@ -195,12 +203,12 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
-    const [result] = await db.query<ResultSetHeader>(
-      "UPDATE tarefa SET estado_tarefa = ? WHERE id_tarefa = ?",
-      [estado_tarefa, id_tarefa]
+    const updateResult = await db.query(
+      "UPDATE tarefa SET estado_tarefa = $1 WHERE id_tarefa = $2",
+      [estado_tarefa, taskIdNum]
     );
 
-    if (result.affectedRows > 0) {
+    if (updateResult.rowCount! > 0) {
       return res
         .status(200)
         .json({ message: "Estado da tarefa atualizado com sucesso!" });
@@ -217,15 +225,14 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
 // ATUALIZAR TAREFA COMPLETA-----------------------------------------------------------------------------------------------------
 export const updateTask = async (req: Request, res: Response) => {
-  // O ID da tarefa virá dos parâmetros da URL
   const { id_tarefa } = req.params;
-  // Os dados atualizados virão do corpo da requisição
   const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
 
-  if (!id_tarefa || !titulo || !prioridade || !estado_tarefa) {
+  const taskIdNum = parseInt(id_tarefa as string);
+  if (isNaN(taskIdNum) || !titulo || !prioridade || !estado_tarefa) {
     return res.status(400).json({
       message:
-        "ID da tarefa, título, prioridade e estado da tarefa são obrigatórios.",
+        "ID da tarefa, título, prioridade e estado da tarefa são obrigatórios e válidos.",
     });
   }
 
@@ -236,30 +243,29 @@ export const updateTask = async (req: Request, res: Response) => {
       ? new Date(data_prazo).toISOString().split("T")[0]
       : null;
 
-    // 2. Consulta ao Banco de Dados para Atualizar a Tarefa
     const sql = `
-            UPDATE tarefa
-            SET
-                titulo = ?,
-                descricao = ?,
-                data_prazo = ?,
-                prioridade = ?,
-                estado_tarefa = ?
-            WHERE
-                id_tarefa = ?;
-        `;
+             UPDATE tarefa
+             SET
+               titulo = $1,
+               descricao = $2,
+               data_prazo = $3,
+               prioridade = $4,
+               estado_tarefa = $5
+             WHERE
+               id_tarefa = $6;
+         `;
     const values = [
       titulo,
       descricao,
       formattedDataPrazo,
       prioridade,
       estado_tarefa,
-      id_tarefa,
+      taskIdNum,
     ];
 
-    const [result] = await db.query<ResultSetHeader>(sql, values);
+    const updateResult = await db.query(sql, values);
 
-    if (result.affectedRows > 0) {
+    if (updateResult.rowCount! > 0) {
       return res
         .status(200)
         .json({ message: "Tarefa atualizada com sucesso!" });
@@ -285,21 +291,21 @@ export const reorderTasks = async (req: Request, res: Response) => {
     });
   }
 
-  // Agora 'db' (que renomeei para 'pool' para clareza) é um Pool
-  const pool = await dbPromise; // Você pode manter 'db' se preferir, mas 'pool' é mais descritivo
-  let connection: PoolConnection | undefined; // <-- AQUI ESTÁ O AJUSTE PRINCIPAL NA TIPAGEM
+  const pool = await dbPromise;
+  let client: import("pg").PoolClient | undefined;
 
   try {
-    connection = await pool.getConnection(); // Obtém uma conexão do pool
-    await connection.beginTransaction(); // Inicia a transação nesta conexão
+    client = await pool.connect();
+    await client.query("BEGIN");
 
-    const [userRows] = await connection.query<RowDataPacket[]>(
-      "SELECT id_usuario FROM usuario WHERE email = ?",
+    const userResult = await client.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
       [email]
     );
+    const userRows: any[] = userResult.rows;
 
     if (!userRows || userRows.length === 0) {
-      await connection.rollback();
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
 
@@ -308,8 +314,9 @@ export const reorderTasks = async (req: Request, res: Response) => {
     for (const task of tasks) {
       const { id_tarefa, ordem } = task;
 
+      const taskIdNum = parseInt(id_tarefa as string);
       if (
-        typeof id_tarefa === "undefined" ||
+        isNaN(taskIdNum) ||
         typeof ordem === "undefined" ||
         typeof ordem !== "number"
       ) {
@@ -318,21 +325,21 @@ export const reorderTasks = async (req: Request, res: Response) => {
         );
       }
 
-      await connection.query<ResultSetHeader>(
+      const updateOrderResult = await client.query(
         `UPDATE tarefa
-         SET ordem = ?
-         WHERE id_tarefa = ? AND id_usuario = ?;`,
-        [ordem, id_tarefa, id_usuario]
+           SET ordem = $1
+           WHERE id_tarefa = $2 AND id_usuario = $3;`,
+        [ordem, taskIdNum, id_usuario]
       );
     }
 
-    await connection.commit();
+    await client.query("COMMIT");
     res
       .status(200)
       .json({ message: "Ordem das tarefas atualizada com sucesso!" });
   } catch (err: any) {
-    if (connection) {
-      await connection.rollback();
+    if (client) {
+      await client.query("ROLLBACK");
     }
     console.error("Erro ao reordenar tarefas:", err);
     return res.status(500).json({
@@ -342,8 +349,8 @@ export const reorderTasks = async (req: Request, res: Response) => {
       error: err,
     });
   } finally {
-    if (connection) {
-      connection.release(); // Libera a conexão de volta para o pool
+    if (client) {
+      client.release();
     }
   }
 };

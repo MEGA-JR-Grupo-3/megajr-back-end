@@ -12,7 +12,7 @@ app.use(
   })
 );
 
-console.log("CORS configurado"); // Mensagem de log atualizada
+console.log("CORS configurado");
 app.use(express.json());
 app.use("/", userRoutes);
 console.log("Rotas de usuário adicionadas.");

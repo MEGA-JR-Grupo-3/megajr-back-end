@@ -1,13 +1,17 @@
+// src/controllers/user.controller.ts
+
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
-import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
+import { QueryResult } from "pg";
 
-// Função para buscar usuários  ------------------------------------------------------------------------------------------------------------
+// Função para buscar usuários ------------------------------------------------------------------------------------------------------------
 export const getUsers = async (_: Request, res: Response) => {
   const db = await dbPromise;
   const q = "SELECT * FROM usuario";
   try {
-    const [data] = await db.query<RowDataPacket[]>(q);
+    const result: QueryResult = await db.query(q);
+    const data: any[] = result.rows;
+
     return res.status(200).json(data);
   } catch (err) {
     console.error("Erro ao buscar usuários:", err);
@@ -26,9 +30,10 @@ export const checkUserExists = async (req: Request, res: Response) => {
   }
 
   const db = await dbPromise;
-  const q = "SELECT * FROM usuario WHERE email = ?";
+  const q = "SELECT * FROM usuario WHERE email = $1";
   try {
-    const [data] = await db.query<RowDataPacket[]>(q, [email]);
+    const result: QueryResult = await db.query(q, [email]);
+    const data: any[] = result.rows;
 
     if (data.length > 0) {
       return res
@@ -47,13 +52,12 @@ export const checkUserExists = async (req: Request, res: Response) => {
   }
 };
 
-// Função para cadastrar um novo usuário  ------------------------------------------------------------------------------------------------------------
+// Função para cadastrar um novo usuário ------------------------------------------------------------------------------------------------------------
 export const createUser = async (req: Request, res: Response) => {
   const { name, email, senha } = req.body;
 
   const userPassword = senha || "senhaGeradaPeloSistema";
 
-  // Validação básica de campos
   if (!name || !email || !userPassword) {
     return res
       .status(400)
@@ -62,24 +66,34 @@ export const createUser = async (req: Request, res: Response) => {
 
   const db = await dbPromise;
   // Verificar se o e-mail já está registrado
-  const checkEmailQuery = "SELECT * FROM usuario WHERE email = ?";
+  const checkEmailQuery = "SELECT * FROM usuario WHERE email = $1";
   try {
-    const [userExists] = await db.query<RowDataPacket[]>(checkEmailQuery, [
+    const userExistsResult: QueryResult = await db.query(checkEmailQuery, [
       email,
     ]);
+    const userExists: any[] = userExistsResult.rows;
 
     if (userExists.length > 0) {
       return res.status(409).json({ message: "Email já cadastrado" });
     }
 
-    // Inserir novo usuário no banco de dados
     const insertQuery =
-      "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
-    const [result] = await db.query(insertQuery, [name, email, userPassword]);
+      "INSERT INTO usuario (name, email, senha) VALUES ($1, $2, $3) RETURNING id_usuario";
+    const insertResult: QueryResult = await db.query(insertQuery, [
+      name,
+      email,
+      userPassword,
+    ]);
 
-    return res
-      .status(201)
-      .json({ message: "Usuário cadastrado com sucesso!", result });
+    const insertedUserId =
+      insertResult.rows && insertResult.rows.length > 0
+        ? insertResult.rows[0].id_usuario
+        : null;
+
+    return res.status(201).json({
+      message: "Usuário cadastrado com sucesso!",
+      id_usuario: insertedUserId,
+    }); // Retorna o ID
   } catch (err) {
     console.error("Erro ao cadastrar usuário:", err);
     return res
@@ -105,29 +119,41 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
 
   const db = await dbPromise;
   try {
-    const [userExists] = await db.query<RowDataPacket[]>(
-      "SELECT id_usuario FROM usuario WHERE email = ?",
+    const userExistsResult: QueryResult = await db.query(
+      // Renomeado para evitar conflito
+      "SELECT id_usuario, name, email FROM usuario WHERE email = $1",
       [email]
     );
+    const userExists: any[] = userExistsResult.rows;
 
     if (userExists.length === 0) {
       console.log("-> handleGoogleLogin: Usuário não existe, criando novo...");
       const insertQuery =
-        "INSERT INTO usuario (name, email, senha) VALUES (?, ?, ?)";
-
-      const [insertResult] = await db.query<ResultSetHeader>(insertQuery, [
+        "INSERT INTO usuario (name, email, senha) VALUES ($1, $2, $3) RETURNING id_usuario, name, email";
+      const insertResult: QueryResult = await db.query(insertQuery, [
         name,
         email,
         null,
       ]);
 
+      const insertedUser =
+        insertResult.rows && insertResult.rows.length > 0
+          ? insertResult.rows[0]
+          : null;
+
       console.log(
         "-> handleGoogleLogin: Usuário criado com sucesso! ID:",
-        insertResult.insertId
+        insertedUser?.id_usuario
       );
       return res.status(201).json({
         message: "Usuário Google registrado com sucesso!",
-        user: { id_usuario: insertResult.insertId, name: name, email: email },
+        user: insertedUser
+          ? {
+              id_usuario: insertedUser.id_usuario,
+              name: insertedUser.name,
+              email: insertedUser.email,
+            }
+          : null,
       });
     } else {
       console.log("-> handleGoogleLogin: Usuário já existe, logando.");
@@ -164,8 +190,9 @@ export const getUserData = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
-    const query = "SELECT name FROM usuario WHERE email = ?";
-    const [results] = await db.query<RowDataPacket[]>(query, [email]);
+    const query = "SELECT name FROM usuario WHERE email = $1";
+    const result: QueryResult = await db.query(query, [email]);
+    const results: any[] = result.rows;
 
     if (results.length > 0) {
       return res.status(200).json({ name: results[0].name });
