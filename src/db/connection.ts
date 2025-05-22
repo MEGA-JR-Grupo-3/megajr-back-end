@@ -8,7 +8,7 @@ async function createDatabaseConnectionPool() {
   const databaseUrl = process.env.DATABASE_URL as string;
 
   if (!databaseUrl) {
-    console.error("Variável de ambiente DATABASE_URL não definida!");
+    console.error("Variável de ambiente DATABASE_URL não está definida!");
     process.exit(1);
   }
 
