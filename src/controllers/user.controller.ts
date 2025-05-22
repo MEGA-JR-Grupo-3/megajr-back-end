@@ -1,5 +1,6 @@
 import { Request, Response } from "express"; // import do express
 import prisma from '../db/connection'; // import do prisma cliente
+import bcrypt from 'bcrypt'; // import para criptografar as senhas
 
 export class UserController {
   // Busca todos os usuários (GET /users)
@@ -67,12 +68,12 @@ export class UserController {
         return res.status(409).json({ message: "Email já cadastrado" });
       }
 
-      // Cria o usuário (com hash de senha - você deve implementar isso)
+      // Cria o usuário
       const newUser = await prisma.usuario.create({
         data: {
           nome,
           email,
-          senha: await hashPassword(senha) // Implemente esta função
+          senha: await hashPassword(senha) // Função ao final do código
         },
         select: {
           id_usuario: true,
@@ -115,9 +116,8 @@ export class UserController {
           data: {
             nome,
             email,
-            // Senha null para usuários Google
-            senha: null, // no db coloquei como a senha nao podendo ser nula, tenho que ver como arrumar isso
-            google_auth: true // Adicione esta coluna ao seu schema
+            senha: "google-auth",
+            foto_perfil: null
           },
           select: {
             id_usuario: true,
@@ -181,11 +181,10 @@ export class UserController {
   }
 }
 
-// Função auxiliar para hash de senha (implemente conforme sua lib de preferência)
+// Função auxiliar para hash de senha
 async function hashPassword(password: string): Promise<string> {
-  // Exemplo com bcrypt (instale: npm install bcrypt @types/bcrypt)
+  // Exemplo com bcrypt (importar bcrypt no topo)
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   return hashedPassword;
 }
-// instalar npm install bcrypt @types/bcrypt para codificar senhas
