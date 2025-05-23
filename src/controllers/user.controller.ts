@@ -103,7 +103,6 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 // Função para lidar com o login/cadastro via Google ----------------------------------------------------------------------------------------------------
-
 export const handleGoogleLogin = async (req: Request, res: Response) => {
   const { name, email } = req.body;
   console.log(
@@ -120,7 +119,6 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
   const db = await dbPromise;
   try {
     const userExistsResult: QueryResult = await db.query(
-      // Renomeado para evitar conflito
       "SELECT id_usuario, name, email FROM usuario WHERE email = $1",
       [email]
     );
@@ -128,12 +126,16 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
 
     if (userExists.length === 0) {
       console.log("-> handleGoogleLogin: Usuário não existe, criando novo...");
+      const googlePlaceholderPassword = `google_user_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 15)}`;
+
       const insertQuery =
         "INSERT INTO usuario (name, email, senha) VALUES ($1, $2, $3) RETURNING id_usuario, name, email";
       const insertResult: QueryResult = await db.query(insertQuery, [
         name,
         email,
-        null,
+        googlePlaceholderPassword,
       ]);
 
       const insertedUser =
