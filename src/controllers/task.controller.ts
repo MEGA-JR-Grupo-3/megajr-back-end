@@ -356,6 +356,8 @@ export const reorderTasks = async (req: Request, res: Response) => {
 
 // DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
 export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
+  console.log("Chamada para deleteAllCompletedTasks");
+  console.log("Email recebido (req.query.email):", req.query.email);
   const { email } = req.query;
 
   if (!email || typeof email !== "string") {
