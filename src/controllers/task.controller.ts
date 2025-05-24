@@ -357,7 +357,7 @@ export const reorderTasks = async (req: Request, res: Response) => {
 
 // DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
 export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { email } = req.query;
 
   if (!email || typeof email !== "string") {
     return res.status(400).json({ message: "Email do usuário é obrigatório." });
