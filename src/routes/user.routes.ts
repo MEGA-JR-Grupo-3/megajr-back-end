@@ -15,6 +15,7 @@ import {
   updateTaskStatus,
   updateTask,
   reorderTasks,
+  deleteAllCompletedTasks,
 } from "../controllers/task.controller.js";
 
 const router = express.Router();
@@ -58,3 +59,6 @@ router.put("/tasks/:id_tarefa", updateTask);
 
 // Rota para deletar uma tarefa pelo ID
 router.delete("/tasks/:id_tarefa", deleteTask);
+
+// Rota para deletar todas as tarefas concluídas
+router.delete("/tasks/delete-completed", deleteAllCompletedTasks);

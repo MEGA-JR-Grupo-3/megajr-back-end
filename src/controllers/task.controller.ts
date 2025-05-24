@@ -354,3 +354,67 @@ export const reorderTasks = async (req: Request, res: Response) => {
     }
   }
 };
+
+// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
+export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ message: "Email do usuário é obrigatório." });
+  }
+
+  const db = await dbPromise; // Obtenha a pool de conexão
+  let client: import("pg").PoolClient | undefined; // Para gerenciar a transação
+
+  try {
+    client = await db.connect(); // Obtenha um cliente da pool
+    await client.query("BEGIN"); // Inicie uma transação
+
+    // 1. Encontrar o id_usuario baseado no email
+    const userResult = await client.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
+      [email]
+    );
+    const userRows: any[] = userResult.rows;
+
+    if (!userRows || userRows.length === 0) {
+      await client.query("ROLLBACK"); // Se o usuário não for encontrado, reverta a transação
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const id_usuario = userRows[0].id_usuario;
+
+    // 2. Deletar as tarefas concluídas para esse id_usuario
+    const deleteResult = await client.query(
+      `DELETE FROM tarefa
+       WHERE id_usuario = $1 AND estado_tarefa = 'Finalizada'`,
+      [id_usuario]
+    );
+
+    await client.query("COMMIT"); // Confirme a transação se tudo deu certo
+
+    if (deleteResult.rowCount! > 0) {
+      return res.status(200).json({
+        message: `Foram deletadas ${deleteResult.rowCount} tarefas concluídas com sucesso!`,
+      });
+    } else {
+      return res
+        .status(200)
+        .json({ message: "Nenhuma tarefa concluída para deletar." });
+    }
+  } catch (err: any) {
+    if (client) {
+      await client.query("ROLLBACK"); // Em caso de erro, reverta a transação
+    }
+    console.error("Erro ao deletar tarefas concluídas:", err);
+    return res.status(500).json({
+      message: `Erro ao deletar tarefas concluídas: ${
+        err.message || "Erro desconhecido."
+      }`,
+      error: err,
+    });
+  } finally {
+    if (client) {
+      client.release(); // Libere o cliente de volta para a pool
+    }
+  }
+};
