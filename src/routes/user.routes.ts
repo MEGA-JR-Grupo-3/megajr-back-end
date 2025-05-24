@@ -51,10 +51,10 @@ router.post("/tasks", getTasksByUser);
 // Rota para reordenar tarefas
 router.put("/tasks/reorder", reorderTasks);
 
-// 2. Modifique a rota existente para atualização de status, tornando-a mais específica
+// Rota existente para atualização de status, tornando-a mais específica
 router.put("/tasks/:id_tarefa/status", updateTaskStatus);
 
-// 3. Adicione a nova rota para ATUALIZAÇÃO COMPLETA da tarefa
+// Rota para ATUALIZAÇÃO COMPLETA da tarefa
 router.put("/tasks/:id_tarefa", updateTask);
 
 // Rota para deletar uma tarefa pelo ID

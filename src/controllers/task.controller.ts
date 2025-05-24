@@ -170,7 +170,6 @@ export const deleteTask = async (req: Request, res: Response) => {
     );
 
     if (deleteResult.rowCount! > 0) {
-      // <-- Adicionado '!' aqui
       return res.status(200).json({ message: "Tarefa deletada com sucesso!" });
     } else {
       return res.status(404).json({ message: "Tarefa não encontrada." });
@@ -363,14 +362,13 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "Email do usuário é obrigatório." });
   }
 
-  const db = await dbPromise; // Obtenha a pool de conexão
-  let client: import("pg").PoolClient | undefined; // Para gerenciar a transação
+  const db = await dbPromise;
+  let client: import("pg").PoolClient | undefined;
 
   try {
-    client = await db.connect(); // Obtenha um cliente da pool
-    await client.query("BEGIN"); // Inicie uma transação
+    client = await db.connect();
+    await client.query("BEGIN");
 
-    // 1. Encontrar o id_usuario baseado no email
     const userResult = await client.query(
       "SELECT id_usuario FROM usuario WHERE email = $1",
       [email]
@@ -378,19 +376,18 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     const userRows: any[] = userResult.rows;
 
     if (!userRows || userRows.length === 0) {
-      await client.query("ROLLBACK"); // Se o usuário não for encontrado, reverta a transação
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
     const id_usuario = userRows[0].id_usuario;
 
-    // 2. Deletar as tarefas concluídas para esse id_usuario
     const deleteResult = await client.query(
       `DELETE FROM tarefa
        WHERE id_usuario = $1 AND estado_tarefa = 'Finalizada'`,
       [id_usuario]
     );
 
-    await client.query("COMMIT"); // Confirme a transação se tudo deu certo
+    await client.query("COMMIT");
 
     if (deleteResult.rowCount! > 0) {
       return res.status(200).json({
@@ -403,7 +400,7 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     }
   } catch (err: any) {
     if (client) {
-      await client.query("ROLLBACK"); // Em caso de erro, reverta a transação
+      await client.query("ROLLBACK");
     }
     console.error("Erro ao deletar tarefas concluídas:", err);
     return res.status(500).json({
@@ -414,7 +411,7 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     });
   } finally {
     if (client) {
-      client.release(); // Libere o cliente de volta para a pool
+      client.release();
     }
   }
 };

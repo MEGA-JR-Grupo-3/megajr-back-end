@@ -65,7 +65,6 @@ export const createUser = async (req: Request, res: Response) => {
   }
 
   const db = await dbPromise;
-  // Verificar se o e-mail já está registrado
   const checkEmailQuery = "SELECT * FROM usuario WHERE email = $1";
   try {
     const userExistsResult: QueryResult = await db.query(checkEmailQuery, [
@@ -93,7 +92,7 @@ export const createUser = async (req: Request, res: Response) => {
     return res.status(201).json({
       message: "Usuário cadastrado com sucesso!",
       id_usuario: insertedUserId,
-    }); // Retorna o ID
+    });
   } catch (err) {
     console.error("Erro ao cadastrar usuário:", err);
     return res
