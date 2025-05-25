@@ -27,7 +27,7 @@ router.post("/register", authenticateFirebaseToken, createUser);
 router.post("/google-login", authenticateFirebaseToken, handleGoogleLogin);
 router.post("/user-data", authenticateFirebaseToken, getUserData);
 
-// ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
+// --- ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
 
 router.post("/tasks/search", authenticateFirebaseToken, searchTasks);
 router.post("/tasks/add", authenticateFirebaseToken, addTask);

@@ -6,11 +6,11 @@
   "engines": {
     "node": "18.0.0"
   },
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "build": "tsup src"
+    "build": "tsup"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/MEGA-JR-Grupo-3/megajr-back-end#readme",
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/node": "^22.15.3",
     "nodemon": "^3.1.10",
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "@types/pg": "^8.15.2",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
