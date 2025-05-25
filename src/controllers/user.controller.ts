@@ -3,16 +3,14 @@
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
 import { QueryResult } from "pg";
-import bcrypt from "bcryptjs"; // Importar bcryptjs
-import { unlink, writeFile } from "fs/promises"; // Para salvar/deletar arquivos localmente
+import bcrypt from "bcryptjs";
+import { unlink, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Helper para __dirname em módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Defina o diretório de uploads. Crie esta pasta na raiz do seu backend.
 const UPLOADS_DIR = path.join(
   __dirname,
   "..",
@@ -20,10 +18,6 @@ const UPLOADS_DIR = path.join(
   "uploads",
   "profile-photos"
 );
-// Certifique-se de que a pasta 'uploads/profile-photos' existe na raiz do seu projeto backend.
-// Se não existir, você pode criá-la manualmente ou usar um script de inicialização.
-
-// --- Funções Existentes (mantidas como estão, ou com pequenas melhorias) ---
 
 // Função para buscar usuários
 export const getUsers = async (_: Request, res: Response) => {
@@ -72,12 +66,11 @@ export const checkUserExists = async (req: Request, res: Response) => {
   }
 };
 
-// Função para cadastrar um novo usuário (com hashing de senha)
+// Função para cadastrar um novo usuário
 export const createUser = async (req: Request, res: Response) => {
   const { name, email, senha } = req.body;
 
   if (!name || !email || !senha) {
-    // 'senha' agora é obrigatória para cadastro tradicional
     return res
       .status(400)
       .json({ message: "Nome, email e senha são obrigatórios." });
@@ -93,11 +86,11 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(409).json({ message: "Email já cadastrado." });
     }
 
-    const salt = await bcrypt.genSalt(10); // Gera um salt
-    const hashedPassword = await bcrypt.hash(senha, salt); // Hashea a senha
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(senha, salt);
 
     const insertQuery =
-      "INSERT INTO usuario (name, email, senha, creation_date) VALUES ($1, $2, $3, NOW()) RETURNING id_usuario, name, email, creation_date, profile_photo_url"; // Retornando mais dados
+      "INSERT INTO usuario (name, email, senha, creation_date) VALUES ($1, $2, $3, NOW()) RETURNING id_usuario, name, email, creation_date, profile_photo_url";
     const insertResult: QueryResult = await db.query(insertQuery, [
       name,
       email,
@@ -124,9 +117,9 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-// Função para lidar com o login/cadastro via Google (melhorias)
+// Função para lidar com o login/cadastro via Google
 export const handleGoogleLogin = async (req: Request, res: Response) => {
-  const { name, email, profilePhotoUrl } = req.body; // Adicionando profilePhotoUrl do Google
+  const { name, email, profilePhotoUrl } = req.body;
 
   if (!email) {
     return res.status(400).json({ message: "Email é obrigatório." });
@@ -135,7 +128,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
   const db = await dbPromise;
   try {
     const userExistsResult: QueryResult = await db.query(
-      "SELECT id_usuario, name, email, profile_photo_url, creation_date FROM usuario WHERE email = $1", // Selecionando mais campos
+      "SELECT id_usuario, name, email, profile_photo_url, creation_date FROM usuario WHERE email = $1",
       [email]
     );
 
@@ -152,7 +145,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
         name,
         email,
         hashedPassword,
-        profilePhotoUrl || "/path/to/default-avatar.png", // Usar a URL da foto do Google ou padrão
+        profilePhotoUrl || "/path/to/default-avatar.png",
       ]);
 
       const insertedUser = insertResult.rows[0];
@@ -168,7 +161,6 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
       });
     } else {
       const existingUser = userExistsResult.rows[0];
-      // Opcional: Se o usuário já existe mas a foto do Google é nova, você pode atualizar aqui
       if (
         profilePhotoUrl &&
         existingUser.profile_photo_url !== profilePhotoUrl
@@ -177,7 +169,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
           "UPDATE usuario SET profile_photo_url = $1 WHERE id_usuario = $2",
           [profilePhotoUrl, existingUser.id_usuario]
         );
-        existingUser.profile_photo_url = profilePhotoUrl; // Atualiza o objeto para o retorno
+        existingUser.profile_photo_url = profilePhotoUrl;
       }
 
       return res.status(200).json({
@@ -200,9 +192,7 @@ export const handleGoogleLogin = async (req: Request, res: Response) => {
   }
 };
 
-// --- Funções Novas (ou significativamente alteradas) ---
-
-// Função para buscar dados do usuário (AGORA RETORNA TUDO O NECESSÁRIO)
+// Função para buscar dados do usuário
 export const getUserData = async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -431,7 +421,7 @@ export const changePassword = async (req: Request, res: Response) => {
 
 // Função para deletar a conta
 export const deleteAccount = async (req: Request, res: Response) => {
-  const { email } = req.query; // Recebendo email via query param
+  const { email } = req.query;
 
   if (!email || typeof email !== "string") {
     return res.status(400).json({ message: "Email do usuário é obrigatório." });
