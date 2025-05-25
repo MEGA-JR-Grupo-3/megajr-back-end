@@ -2,13 +2,13 @@
   "name": "todo-megajr-back",
   "version": "1.0.0",
   "description": "API backend do projeto TODO MEGA JR, com Express e MySQL",
-  "main": "dist/server.js",
+  "main": "dist/server.mjs",
   "engines": {
     "node": "18.0.0"
   },
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node dist/server.mjs",
     "dev": "tsx src/server.ts",
     "build": "tsup src"
   },
