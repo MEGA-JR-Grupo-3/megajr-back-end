@@ -5,6 +5,11 @@ import {
   checkUserExists,
   handleGoogleLogin,
   getUserData,
+  // --- Novas funções que precisam ser importadas ---
+  updateProfilePhoto,
+  updateEmail,
+  changePassword,
+  deleteAccount,
 } from "../controllers/user.controller.js";
 
 import {
@@ -18,7 +23,14 @@ import {
   deleteAllCompletedTasks,
 } from "../controllers/task.controller.js";
 
+import multer from "multer";
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 const router = express.Router();
+
+// --- ROTAS DE USUÁRIO ------------------------------------------------------------------------------------------
 
 // Rota para verificar se o usuário existe com base no email
 router.get("/check-user", checkUserExists);
@@ -35,7 +47,24 @@ router.post("/cadastro-google", handleGoogleLogin);
 // Nova rota para pegar os dados do usuário logado
 router.post("/user-data", getUserData);
 
-// ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
+// Rota para atualizar a foto de perfil
+router.put(
+  "/users/update-profile-photo",
+  upload.single("profilePhoto"),
+  updateProfilePhoto
+);
+
+// Rota para atualizar o email
+router.put("/users/update-email", updateEmail);
+
+// Rota para mudar a senha
+router.put("/users/change-password", changePassword);
+
+// Rota para deletar a conta
+// A rota de exclusão de conta espera o email como query parameter.
+router.delete("/users/delete-account", deleteAccount);
+
+// --- ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
 
 // Rota para buscar tarefas com filtro por título
 router.post("/tasks/search", searchTasks);
