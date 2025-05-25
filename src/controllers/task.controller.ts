@@ -354,10 +354,8 @@ export const reorderTasks = async (req: Request, res: Response) => {
   }
 };
 
-// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
+// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
 export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
-  console.log("Chamada para deleteAllCompletedTasks");
-  console.log("Email recebido (req.query.email):", req.query.email);
   const { email } = req.query;
 
   if (!email || typeof email !== "string") {
@@ -371,34 +369,33 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     client = await db.connect();
     await client.query("BEGIN");
 
-    const userResult = await client.query(
-      "SELECT id_usuario FROM usuario WHERE email = $1",
-      [email]
-    );
-    const userRows: any[] = userResult.rows;
-
-    if (!userRows || userRows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Usuário não encontrado." });
-    }
-    const id_usuario = userRows[0].id_usuario;
-
     const deleteResult = await client.query(
       `DELETE FROM tarefa
-       WHERE id_usuario = $1 AND estado_tarefa = 'Finalizada'`,
-      [id_usuario]
+       WHERE id_usuario = (SELECT id_usuario FROM usuario WHERE email = $1)
+       AND estado_tarefa = 'Finalizada'`,
+      [email]
     );
+    if (deleteResult.rowCount === 0) {
+      const userCheckResult = await client.query(
+        "SELECT id_usuario FROM usuario WHERE email = $1",
+        [email]
+      );
 
-    await client.query("COMMIT");
-
-    if (deleteResult.rowCount! > 0) {
+      if (userCheckResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Usuário não encontrado." });
+      } else {
+        await client.query("COMMIT");
+        return res
+          .status(200)
+          .json({ message: "Nenhuma tarefa concluída para deletar." });
+      }
+    } else {
+      // Tarefas deletadas com sucesso
+      await client.query("COMMIT");
       return res.status(200).json({
         message: `Foram deletadas ${deleteResult.rowCount} tarefas concluídas com sucesso!`,
       });
-    } else {
-      return res
-        .status(200)
-        .json({ message: "Nenhuma tarefa concluída para deletar." });
     }
   } catch (err: any) {
     if (client) {
