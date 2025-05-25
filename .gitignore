@@ -3,3 +3,6 @@ node_modules
 .env
 
 netlify.toml
+
+# Firebase credentials
+src/config/autenticacao-mega-firebase-adminsdk-fbsvc-43899e9871.json
