@@ -35,8 +35,6 @@ router.post("/cadastro-google", handleGoogleLogin);
 // Nova rota para pegar os dados do usuário logado
 router.post("/user-data", getUserData);
 
-export default router;
-
 // ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
 
 // Rota para buscar tarefas com filtro por título
@@ -51,6 +49,9 @@ router.post("/tasks", getTasksByUser);
 // Rota para reordenar tarefas
 router.put("/tasks/reorder", reorderTasks);
 
+// Rota para deletar todas as tarefas concluídas
+router.delete("/tasks/delete-completed", deleteAllCompletedTasks);
+
 // Rota existente para atualização de status, tornando-a mais específica
 router.put("/tasks/:id_tarefa/status", updateTaskStatus);
 
@@ -60,5 +61,4 @@ router.put("/tasks/:id_tarefa", updateTask);
 // Rota para deletar uma tarefa pelo ID
 router.delete("/tasks/:id_tarefa", deleteTask);
 
-// Rota para deletar todas as tarefas concluídas
-router.delete("/tasks/delete-completed", deleteAllCompletedTasks);
+export default router;
