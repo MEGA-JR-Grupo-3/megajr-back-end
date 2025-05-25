@@ -4,9 +4,7 @@ import * as admin from "firebase-admin";
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
 if (!serviceAccountJson) {
-  console.error(
-    "FIREBASE_SERVICE_ACCOUNT_KEY não está definida nas variáveis de ambiente!"
-  );
+  console.error("FIREBASE_SERVICE_ACCOUNT_KEY não está definida!");
   process.exit(1);
 }
 
