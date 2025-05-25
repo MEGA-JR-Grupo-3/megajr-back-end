@@ -1,22 +1,54 @@
-// src/firebaseAdminConfig.ts (crie este arquivo)
-import * as admin from "firebase-admin";
+// src/firebaseAdminConfig.ts
 
-const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+import * as dotenv from "dotenv";
+dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
 
-if (!serviceAccountJson) {
-  console.error("FIREBASE_SERVICE_ACCOUNT_KEY não está definida!");
-  process.exit(1);
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+import admin from "firebase-admin";
+
+console.log(
+  "--- DEBUG Firebase Admin SDK Initialization (VIA GOOGLE_APPLICATION_CREDENTIALS) ---"
+);
+
+const credPath = path.resolve(
+  __dirname,
+  "..",
+  process.env.GOOGLE_APPLICATION_CREDENTIALS!
+);
+
+console.log("Caminho absoluto do JSON:", credPath);
+import fs from "fs";
+
+console.log(
+  "Conteúdo lido do JSON:",
+  JSON.parse(fs.readFileSync(credPath, "utf-8"))
+);
 
 try {
-  const serviceAccount = JSON.parse(serviceAccountJson);
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(
+      JSON.parse(fs.readFileSync(credPath, "utf-8"))
+    ),
   });
+
   console.log("Firebase Admin SDK inicializado com sucesso.");
 } catch (error) {
-  console.error("Erro ao inicializar Firebase Admin SDK:", error);
+  console.error(
+    "ERRO CRÍTICO ao inicializar Firebase Admin SDK (VIA GOOGLE_APPLICATION_CREDENTIALS):",
+    error
+  );
+  if (error instanceof Error) {
+    console.error("Mensagem de erro específica:", error.message);
+    console.error(
+      "Dica: Verifique se a variável de ambiente GOOGLE_APPLICATION_CREDENTIALS está definida e aponta para o arquivo JSON de credenciais correto."
+    );
+  }
   process.exit(1);
 }
+console.log("--- FIM DEBUG Firebase Admin SDK Initialization ---");
 
 export { admin };

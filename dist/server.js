@@ -565,22 +565,31 @@ var deleteAllCompletedTasks = async (req, res) => {
 import { Router } from "express";
 
 // src/firebaseAdminConfig.ts
+import * as dotenv2 from "dotenv";
 import * as admin from "firebase-admin";
-var serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-if (!serviceAccountJson) {
-  console.error("FIREBASE_SERVICE_ACCOUNT_KEY n\xE3o est\xE1 definida!");
-  process.exit(1);
-}
+dotenv2.config();
+console.log(
+  "--- DEBUG Firebase Admin SDK Initialization (VIA GOOGLE_APPLICATION_CREDENTIALS) ---"
+);
 try {
-  const serviceAccount = JSON.parse(serviceAccountJson);
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.applicationDefault()
   });
   console.log("Firebase Admin SDK inicializado com sucesso.");
 } catch (error) {
-  console.error("Erro ao inicializar Firebase Admin SDK:", error);
+  console.error(
+    "ERRO CR\xCDTICO ao inicializar Firebase Admin SDK (VIA GOOGLE_APPLICATION_CREDENTIALS):",
+    error
+  );
+  if (error instanceof Error) {
+    console.error("Mensagem de erro espec\xEDfica:", error.message);
+    console.error(
+      "Dica: Verifique se a vari\xE1vel de ambiente GOOGLE_APPLICATION_CREDENTIALS est\xE1 definida e aponta para o arquivo JSON de credenciais correto."
+    );
+  }
   process.exit(1);
 }
+console.log("--- FIM DEBUG Firebase Admin SDK Initialization ---");
 
 // src/middlewares/auth.middleware.ts
 var authenticateFirebaseToken = async (req, res, next) => {
@@ -649,8 +658,8 @@ console.log("Rotas de usu\xE1rio adicionadas.");
 var app_default = app;
 
 // src/server.ts
-import dotenv2 from "dotenv";
-dotenv2.config();
+import dotenv3 from "dotenv";
+dotenv3.config();
 var PORT = process.env.PORT || 8800;
 app_default.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
