@@ -568,9 +568,7 @@ import { Router } from "express";
 import * as admin from "firebase-admin";
 var serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 if (!serviceAccountJson) {
-  console.error(
-    "FIREBASE_SERVICE_ACCOUNT_KEY n\xE3o est\xE1 definida nas vari\xE1veis de ambiente!"
-  );
+  console.error("FIREBASE_SERVICE_ACCOUNT_KEY n\xE3o est\xE1 definida!");
   process.exit(1);
 }
 try {
