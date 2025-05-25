@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node dist/server.mjs",
     "dev": "tsx src/server.ts",
-    "build": "tsup src"
+    "build": "tsup"
   },
   "repository": {
     "type": "git",
