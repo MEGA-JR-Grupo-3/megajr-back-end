@@ -1,50 +1,34 @@
 // src/firebaseAdminConfig.ts
 
 import * as dotenv from "dotenv";
-dotenv.config();
-import path from "path";
-import { fileURLToPath } from "url";
+dotenv.config(); // Carrega as variáveis do .env (localmente)
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import admin from "firebase-admin"; // Certifique-se que esta importação está correta para seu TSConfig
 
-import admin from "firebase-admin";
-
-console.log(
-  "--- DEBUG Firebase Admin SDK Initialization (VIA GOOGLE_APPLICATION_CREDENTIALS) ---"
-);
-
-const credPath = path.resolve(
-  __dirname,
-  "..",
-  process.env.GOOGLE_APPLICATION_CREDENTIALS!
-);
-
-console.log("Caminho absoluto do JSON:", credPath);
-import fs from "fs";
-
-console.log(
-  "Conteúdo lido do JSON:",
-  JSON.parse(fs.readFileSync(credPath, "utf-8"))
-);
+console.log("--- DEBUG Firebase Admin SDK Initialization ---");
 
 try {
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    throw new Error(
+      "Variável de ambiente GOOGLE_APPLICATION_CREDENTIALS não definida."
+    );
+  }
+
+  const serviceAccountConfig = JSON.parse(
+    process.env.GOOGLE_APPLICATION_CREDENTIALS
+  );
+
   admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(fs.readFileSync(credPath, "utf-8"))
-    ),
+    credential: admin.credential.cert(serviceAccountConfig),
   });
 
   console.log("Firebase Admin SDK inicializado com sucesso.");
 } catch (error) {
-  console.error(
-    "ERRO CRÍTICO ao inicializar Firebase Admin SDK (VIA GOOGLE_APPLICATION_CREDENTIALS):",
-    error
-  );
+  console.error("ERRO CRÍTICO ao inicializar Firebase Admin SDK:", error);
   if (error instanceof Error) {
     console.error("Mensagem de erro específica:", error.message);
     console.error(
-      "Dica: Verifique se a variável de ambiente GOOGLE_APPLICATION_CREDENTIALS está definida e aponta para o arquivo JSON de credenciais correto."
+      "Dica: Certifique-se de que GOOGLE_APPLICATION_CREDENTIALS contém o JSON COMPLETO da sua chave de serviço."
     );
   }
   process.exit(1);
