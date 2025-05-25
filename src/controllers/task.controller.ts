@@ -1,22 +1,21 @@
+// src/controllers/task.controller.ts
+
 import { Pool, QueryResult } from "pg";
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
-
-export const searchTasks = async (req: Request, res: Response) => {
+export const searchTasks = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
   try {
-    const { email, query } = req.body;
+    const email = req.userEmail;
+    const { query } = req.body;
 
-    if (
-      !email ||
-      typeof email !== "string" ||
-      !query ||
-      typeof query !== "string"
-    ) {
+    if (!email || !query || typeof query !== "string") {
       return res.status(400).json({
         message:
-          "Email do usuário e termo de pesquisa (query) são obrigatórios e devem ser strings.",
+          "Email do usuário (do token) e termo de pesquisa (query) são obrigatórios e devem ser strings.",
       });
     }
 
@@ -29,7 +28,9 @@ export const searchTasks = async (req: Request, res: Response) => {
     const userRows: any[] = userResult.rows;
 
     if (userRows.length === 0) {
-      return res.status(404).json({ message: "Usuário não encontrado." });
+      return res
+        .status(404)
+        .json({ message: "Usuário do token não encontrado no DB." });
     }
     const userId = userRows[0].id_usuario;
 
@@ -55,16 +56,18 @@ export const searchTasks = async (req: Request, res: Response) => {
 };
 
 // BUSCAR TAREFAS POR USUARIO-----------------------------------------------------------------------------------------------------
-
-export const getTasksByUser = async (req: Request, res: Response) => {
-  const { email } = req.body;
+export const getTasksByUser = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
+  const email = req.userEmail;
   console.log("-> getTasksByUser: Requisição recebida para o email:", email);
 
   if (!email) {
     console.log(
-      "-> getTasksByUser: Erro - Email não fornecido no corpo da requisição."
+      "-> getTasksByUser: Erro - Email não fornecido no token de autenticação."
     );
-    return res.status(400).json({ message: "Email do usuário é obrigatório." });
+    return res.status(400).json({
+      message: "Email do usuário é obrigatório no token de autenticação.",
+    });
   }
 
   const db = await dbPromise;
@@ -95,14 +98,15 @@ export const getTasksByUser = async (req: Request, res: Response) => {
 };
 
 // ADICIONAR TAREFA---------------------------------------------------------------------------------------------------------------
-export const addTask = async (req: Request, res: Response) => {
-  const { titulo, descricao, data_prazo, prioridade, estado_tarefa, email } =
-    req.body;
+export const addTask = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
+  const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
+  const email = req.userEmail;
 
   if (!titulo || !prioridade || !estado_tarefa || !email) {
     return res.status(400).json({
       message:
-        "Título, prioridade, estado e email do usuário são obrigatórios.",
+        "Título, prioridade, estado são obrigatórios. Email do usuário não encontrado no token.",
     });
   }
 
@@ -116,7 +120,9 @@ export const addTask = async (req: Request, res: Response) => {
     const userRows: any[] = userResult.rows;
 
     if (!userRows || userRows.length === 0) {
-      return res.status(404).json({ message: "Usuário não encontrado." });
+      return res.status(404).json({
+        message: "Usuário não encontrado no DB para o email do token.",
+      });
     }
 
     const id_usuario = userRows[0].id_usuario;
@@ -154,25 +160,50 @@ export const addTask = async (req: Request, res: Response) => {
 };
 
 //DELETAR TAREFA-----------------------------------------------------------------------------------------------------------------
-export const deleteTask = async (req: Request, res: Response) => {
+export const deleteTask = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
   const { id_tarefa } = req.params;
+  const email = req.userEmail;
 
   const taskIdNum = parseInt(id_tarefa as string);
-  if (isNaN(taskIdNum)) {
-    return res.status(400).json({ message: "ID da tarefa inválido." });
+  if (isNaN(taskIdNum) || !email) {
+    return res
+      .status(400)
+      .json({ message: "ID da tarefa inválido ou email do usuário ausente." });
   }
 
   try {
     const db = await dbPromise;
+    const userResult = await db.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
+      [email]
+    );
+    const userRows: any[] = userResult.rows;
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const id_usuario = userRows[0].id_usuario;
+
     const deleteResult = await db.query(
-      "DELETE FROM tarefa WHERE id_tarefa = $1",
-      [taskIdNum]
+      "DELETE FROM tarefa WHERE id_tarefa = $1 AND id_usuario = $2",
+      [taskIdNum, id_usuario]
     );
 
     if (deleteResult.rowCount! > 0) {
       return res.status(200).json({ message: "Tarefa deletada com sucesso!" });
     } else {
-      return res.status(404).json({ message: "Tarefa não encontrada." });
+      const taskCheck = await db.query(
+        "SELECT id_tarefa FROM tarefa WHERE id_tarefa = $1",
+        [taskIdNum]
+      );
+      if (taskCheck.rows.length === 0) {
+        return res.status(404).json({ message: "Tarefa não encontrada." });
+      } else {
+        return res.status(403).json({
+          message: "Você não tem permissão para deletar esta tarefa.",
+        });
+      }
     }
   } catch (err) {
     console.error("Erro ao deletar tarefa:", err);
@@ -183,14 +214,17 @@ export const deleteTask = async (req: Request, res: Response) => {
 };
 
 // ATUALIZAR APENAS O ESTADO DA TAREFA (EXISTENTE)-----------------------------------------------------------------------------------------------------
-export const updateTaskStatus = async (req: Request, res: Response) => {
+export const updateTaskStatus = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
   const { id_tarefa } = req.params;
   const { estado_tarefa } = req.body;
+  const email = req.userEmail;
 
   const taskIdNum = parseInt(id_tarefa as string);
-  if (isNaN(taskIdNum) || !estado_tarefa) {
+  if (isNaN(taskIdNum) || !estado_tarefa || !email) {
     return res.status(400).json({
-      message: "ID da tarefa e novo estado são obrigatórios e válidos.",
+      message:
+        "ID da tarefa e novo estado são obrigatórios e válidos. Email do usuário ausente.",
     });
   }
 
@@ -202,9 +236,20 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
   try {
     const db = await dbPromise;
+    const userResult = await db.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
+      [email]
+    );
+    const userRows: any[] = userResult.rows;
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const id_usuario = userRows[0].id_usuario;
+
     const updateResult = await db.query(
-      "UPDATE tarefa SET estado_tarefa = $1 WHERE id_tarefa = $2",
-      [estado_tarefa, taskIdNum]
+      "UPDATE tarefa SET estado_tarefa = $1 WHERE id_tarefa = $2 AND id_usuario = $3",
+      [estado_tarefa, taskIdNum, id_usuario]
     );
 
     if (updateResult.rowCount! > 0) {
@@ -212,7 +257,17 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         .status(200)
         .json({ message: "Estado da tarefa atualizado com sucesso!" });
     } else {
-      return res.status(404).json({ message: "Tarefa não encontrada." });
+      const taskCheck = await db.query(
+        "SELECT id_tarefa FROM tarefa WHERE id_tarefa = $1",
+        [taskIdNum]
+      );
+      if (taskCheck.rows.length === 0) {
+        return res.status(404).json({ message: "Tarefa não encontrada." });
+      } else {
+        return res.status(403).json({
+          message: "Você não tem permissão para atualizar esta tarefa.",
+        });
+      }
     }
   } catch (err) {
     console.error("Erro ao atualizar estado da tarefa:", err);
@@ -223,20 +278,32 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 };
 
 // ATUALIZAR TAREFA COMPLETA-----------------------------------------------------------------------------------------------------
-export const updateTask = async (req: Request, res: Response) => {
+export const updateTask = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
   const { id_tarefa } = req.params;
   const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
+  const email = req.userEmail;
 
   const taskIdNum = parseInt(id_tarefa as string);
-  if (isNaN(taskIdNum) || !titulo || !prioridade || !estado_tarefa) {
+  if (isNaN(taskIdNum) || !titulo || !prioridade || !estado_tarefa || !email) {
     return res.status(400).json({
       message:
-        "ID da tarefa, título, prioridade e estado da tarefa são obrigatórios e válidos.",
+        "ID da tarefa, título, prioridade, estado da tarefa são obrigatórios e válidos. Email do usuário ausente.",
     });
   }
 
   try {
     const db = await dbPromise;
+    const userResult = await db.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
+      [email]
+    );
+    const userRows: any[] = userResult.rows;
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const id_usuario = userRows[0].id_usuario;
 
     const formattedDataPrazo = data_prazo
       ? new Date(data_prazo).toISOString().split("T")[0]
@@ -251,7 +318,7 @@ export const updateTask = async (req: Request, res: Response) => {
                prioridade = $4,
                estado_tarefa = $5
              WHERE
-               id_tarefa = $6;
+               id_tarefa = $6 AND id_usuario = $7; -- Garanta que seja do usuário logado
          `;
     const values = [
       titulo,
@@ -260,6 +327,7 @@ export const updateTask = async (req: Request, res: Response) => {
       prioridade,
       estado_tarefa,
       taskIdNum,
+      id_usuario,
     ];
 
     const updateResult = await db.query(sql, values);
@@ -269,7 +337,17 @@ export const updateTask = async (req: Request, res: Response) => {
         .status(200)
         .json({ message: "Tarefa atualizada com sucesso!" });
     } else {
-      return res.status(404).json({ message: "Tarefa não encontrada." });
+      const taskCheck = await db.query(
+        "SELECT id_tarefa FROM tarefa WHERE id_tarefa = $1",
+        [taskIdNum]
+      );
+      if (taskCheck.rows.length === 0) {
+        return res.status(404).json({ message: "Tarefa não encontrada." });
+      } else {
+        return res.status(403).json({
+          message: "Você não tem permissão para atualizar esta tarefa.",
+        });
+      }
     }
   } catch (err) {
     console.error("Erro ao atualizar tarefa completa:", err);
@@ -280,13 +358,15 @@ export const updateTask = async (req: Request, res: Response) => {
 };
 
 // REORDENAR TAREFAS-----------------------------------------------------------------------------------------------------
-export const reorderTasks = async (req: Request, res: Response) => {
-  const { email, tasks } = req.body;
+export const reorderTasks = async (req: AuthRequest, res: Response) => {
+  // Use AuthRequest
+  const { tasks } = req.body;
+  const email = req.userEmail;
 
   if (!email || !Array.isArray(tasks) || tasks.length === 0) {
     return res.status(400).json({
       message:
-        "Dados inválidos para reordenar tarefas. Email e array de tarefas são obrigatórios.",
+        "Dados inválidos para reordenar tarefas. Email do usuário ausente ou array de tarefas vazio.",
     });
   }
 
@@ -354,12 +434,17 @@ export const reorderTasks = async (req: Request, res: Response) => {
   }
 };
 
-// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
-export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
-  const { email } = req.query;
+// DELETAR TODAS AS TAREFAS CONCLUÍDAS --------------------------------------------------------------------------------------------
+export const deleteAllCompletedTasks = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const email = req.userEmail;
 
-  if (!email || typeof email !== "string") {
-    return res.status(400).json({ message: "Email do usuário é obrigatório." });
+  if (!email) {
+    return res
+      .status(400)
+      .json({ message: "Email do usuário ausente no token de autenticação." });
   }
 
   const db = await dbPromise;
@@ -369,29 +454,30 @@ export const deleteAllCompletedTasks = async (req: Request, res: Response) => {
     client = await db.connect();
     await client.query("BEGIN");
 
-    const deleteResult = await client.query(
-      `DELETE FROM tarefa
-       WHERE id_usuario = (SELECT id_usuario FROM usuario WHERE email = $1)
-       AND estado_tarefa = 'Finalizada'`,
+    const userResult = await client.query(
+      "SELECT id_usuario FROM usuario WHERE email = $1",
       [email]
     );
-    if (deleteResult.rowCount === 0) {
-      const userCheckResult = await client.query(
-        "SELECT id_usuario FROM usuario WHERE email = $1",
-        [email]
-      );
+    const userRows: any[] = userResult.rows;
 
-      if (userCheckResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({ message: "Usuário não encontrado." });
-      } else {
-        await client.query("COMMIT");
-        return res
-          .status(200)
-          .json({ message: "Nenhuma tarefa concluída para deletar." });
-      }
+    if (!userRows || userRows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const id_usuario = userRows[0].id_usuario;
+
+    const deleteResult = await client.query(
+      `DELETE FROM tarefa
+       WHERE id_usuario = $1
+       AND estado_tarefa = 'Finalizada'`,
+      [id_usuario]
+    );
+    if (deleteResult.rowCount === 0) {
+      await client.query("COMMIT");
+      return res
+        .status(200)
+        .json({ message: "Nenhuma tarefa concluída para deletar." });
     } else {
-      // Tarefas deletadas com sucesso
       await client.query("COMMIT");
       return res.status(200).json({
         message: `Foram deletadas ${deleteResult.rowCount} tarefas concluídas com sucesso!`,
