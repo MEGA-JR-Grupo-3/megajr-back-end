@@ -361,7 +361,6 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
 // REORDENAR TAREFAS-----------------------------------------------------------------------------------------------------
 export const reorderTasks = async (req: AuthRequest, res: Response) => {
-  // Use AuthRequest
   const { tasks } = req.body;
   const email = req.userEmail;
 
@@ -402,7 +401,7 @@ export const reorderTasks = async (req: AuthRequest, res: Response) => {
         typeof ordem !== "number"
       ) {
         throw new Error(
-          `Dados de tarefa inválidos: { id_tarefa: ${id_tarefa}, ordem: ${ordem} }`
+          `Dados de tarefa inválidos: { id_tarefa: ${id_tarefa}, ordem: ${ordem} }. Ordem deve ser um número válido.`
         );
       }
 
