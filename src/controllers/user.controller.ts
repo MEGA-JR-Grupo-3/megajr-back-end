@@ -3,7 +3,8 @@
 import { dbPromise } from "../db/connection.js";
 import { Request, Response } from "express";
 import { QueryResult } from "pg";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+
 const JWT_SECRET =
   process.env.JWT_SECRET || "super_secreta_chave_padrao_muito_forte";
 
@@ -23,7 +24,6 @@ export const getUsers = async (_: Request, res: Response) => {
   }
 };
 
-// Função para verificar se o usuário já existe
 // Função para verificar se o usuário já existe
 export const checkUserExists = async (req: Request, res: Response) => {
   const { email } = req.query;
@@ -62,48 +62,37 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   const { name } = req.body;
 
   if (!firebaseUid || !email || !name) {
-    return res
-      .status(400)
-      .json({
-        message: "Dados do usuário incompletos para cadastro/sincronização.",
-      });
+    return res.status(400).json({
+      message: "Dados do usuário incompletos para cadastro/sincronização.",
+    });
   }
 
   const db = await dbPromise;
-  const checkEmailQuery = "SELECT * FROM usuario WHERE email = $1";
+  const checkUserQuery = "SELECT * FROM usuario WHERE email = $1";
   try {
-    const userExistsResult: QueryResult = await db.query(checkEmailQuery, [
+    const userExistsResult: QueryResult = await db.query(checkUserQuery, [
       email,
     ]);
     if (userExistsResult.rows.length > 0) {
-      // Usuário já existe no seu DB, apenas retorne os dados
       return res.status(200).json({
         message: "Usuário já cadastrado no seu banco de dados.",
-        user: {
-          id_usuario: userExistsResult.rows[0].id_usuario,
-          name: userExistsResult.rows[0].name,
-          email: userExistsResult.rows[0].email,
-        },
+        user: userExistsResult.rows[0],
       });
     }
 
-    // Insere o usuário no seu DB - SEM A SENHA
     const insertQuery =
-      "INSERT INTO usuario (name, email) VALUES ($1, $2) RETURNING id_usuario, name, email";
+      "INSERT INTO usuario (name, email, firebase_uid) VALUES ($1, $2, $3) RETURNING id_usuario, name, email, firebase_uid";
     const insertResult: QueryResult = await db.query(insertQuery, [
       name,
       email,
+      firebaseUid,
     ]);
 
     const insertedUser = insertResult.rows[0];
 
     return res.status(201).json({
       message: "Usuário cadastrado com sucesso no seu banco de dados!",
-      user: {
-        id_usuario: insertedUser.id_usuario,
-        name: insertedUser.name,
-        email: insertedUser.email,
-      },
+      user: insertedUser,
     });
   } catch (err) {
     console.error("Erro ao cadastrar/sincronizar usuário:", err);
@@ -113,7 +102,6 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Função para lidar com o login/cadastro via Google
 export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
   const email = req.userEmail;
   const firebaseUid = req.userId;
@@ -132,9 +120,8 @@ export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
 
   const db = await dbPromise;
   try {
-    // A query não precisa mais buscar 'senha'
     const userExistsResult: QueryResult = await db.query(
-      "SELECT id_usuario, name, email FROM usuario WHERE email = $1",
+      "SELECT id_usuario, name, email, firebase_uid FROM usuario WHERE email = $1",
       [email]
     );
     const userExists: any[] = userExistsResult.rows;
@@ -143,12 +130,12 @@ export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
       console.log(
         "-> handleGoogleLogin: Usuário não existe no DB, criando novo..."
       );
-      // Insert sem a senha
       const insertQuery =
-        "INSERT INTO usuario (name, email) VALUES ($1, $2) RETURNING id_usuario, name, email";
+        "INSERT INTO usuario (name, email, firebase_uid) VALUES ($1, $2, $3) RETURNING id_usuario, name, email, firebase_uid";
       const insertResult: QueryResult = await db.query(insertQuery, [
         name,
         email,
+        firebaseUid,
       ]);
 
       const insertedUser = insertResult.rows[0];
@@ -165,13 +152,19 @@ export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
       console.log(
         "-> handleGoogleLogin: Usuário já existe no DB, retornando dados."
       );
+      if (!userExists[0].firebase_uid) {
+        await db.query(
+          "UPDATE usuario SET firebase_uid = $1 WHERE email = $2",
+          [firebaseUid, email]
+        );
+        console.log(
+          "-> handleGoogleLogin: firebase_uid atualizado para o usuário existente."
+        );
+      }
+
       return res.status(200).json({
         message: "Usuário Google encontrado no DB",
-        user: {
-          id_usuario: userExists[0].id_usuario,
-          name: userExists[0].name,
-          email: userExists[0].email,
-        },
+        user: userExists[0],
       });
     }
   } catch (err: any) {
@@ -187,6 +180,7 @@ export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Função para buscar dados do usuário
 export const getUserData = async (req: AuthRequest, res: Response) => {
   const email = req.userEmail;
 
@@ -198,9 +192,8 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
 
   try {
     const db = await dbPromise;
-    // A query não busca 'senha'
     const query =
-      "SELECT id_usuario, name, email, foto_perfil AS profilePhotoUrl, data_criacao AS creationDate FROM usuario WHERE email = $1"; // Ajustei para corresponder ao DB e frontend
+      "SELECT id_usuario, name, email, foto_perfil, data_criacao, firebase_uid FROM usuario WHERE email = $1";
     const result: QueryResult = await db.query(query, [email]);
     const user = result.rows[0];
 
@@ -211,6 +204,7 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
         email: user.email,
         foto_perfil: user.foto_perfil,
         data_criacao: user.data_criacao,
+        firebase_uid: user.firebase_uid,
       });
     } else {
       return res
@@ -222,5 +216,106 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao buscar dados do usuário", error: err });
+  }
+};
+
+// Atualizar foto de perfil no DB
+/*export const updateUserProfilePhoto = async (
+
+};*/
+
+// Atualizar email no DB
+export const updateUserEmail = async (req: AuthRequest, res: Response) => {
+  const oldEmail = req.userEmail;
+  const { newEmail } = req.body;
+
+  if (!oldEmail || !newEmail) {
+    return res.status(400).json({
+      message: "Email antigo ou novo email não fornecidos.",
+    });
+  }
+
+  try {
+    const db = await dbPromise;
+    const checkDuplicateQuery = "SELECT email FROM usuario WHERE email = $1";
+    const duplicateResult: QueryResult = await db.query(checkDuplicateQuery, [
+      newEmail,
+    ]);
+    if (duplicateResult.rows.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "Este novo email já está em uso por outra conta." });
+    }
+
+    const query = "UPDATE usuario SET email = $1 WHERE email = $2 RETURNING *";
+    const result: QueryResult = await db.query(query, [newEmail, oldEmail]);
+
+    if (result.rowCount && result.rowCount > 0) {
+      return res.status(200).json({
+        message: "Email atualizado com sucesso no DB.",
+        user: result.rows[0],
+      });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Usuário não encontrado para atualizar o email." });
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar email no DB:", err);
+    return res.status(500).json({
+      message: "Erro ao atualizar email no banco de dados",
+      error: err,
+    });
+  }
+};
+
+// Deletar dados do usuário no DB
+export const deleteUserData = async (req: AuthRequest, res: Response) => {
+  const firebaseUid = req.userId;
+  const userEmail = req.userEmail;
+
+  if (!firebaseUid && !userEmail) {
+    return res
+      .status(401)
+      .json({ message: "UID ou Email do usuário não disponível no token." });
+  }
+
+  try {
+    const db = await dbPromise;
+    let query = "";
+    let params: string[] = [];
+
+    if (firebaseUid) {
+      query = "DELETE FROM usuario WHERE firebase_uid = $1";
+      params = [firebaseUid];
+    } else if (userEmail) {
+      query = "DELETE FROM usuario WHERE email = $1";
+      params = [userEmail];
+      console.warn(
+        "Deletando usuário por email. Considere adicionar 'firebase_uid' à sua tabela 'usuario' para exclusão mais robusta."
+      );
+    } else {
+      return res.status(400).json({
+        message: "Não foi possível identificar o usuário para exclusão.",
+      });
+    }
+
+    const result: QueryResult = await db.query(query, params);
+
+    if (result.rowCount && result.rowCount > 0) {
+      return res
+        .status(200)
+        .json({ message: "Dados do usuário deletados do banco de dados." });
+    } else {
+      return res.status(404).json({
+        message: "Dados do usuário não encontrados no banco de dados.",
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao deletar dados do usuário no DB:", err);
+    return res.status(500).json({
+      message: "Erro ao deletar dados do usuário no banco de dados",
+      error: err,
+    });
   }
 };

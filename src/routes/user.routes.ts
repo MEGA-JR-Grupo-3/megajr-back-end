@@ -4,6 +4,9 @@ import {
   checkUserExists,
   handleGoogleLogin,
   getUserData,
+  //updateUserProfilePhoto,
+  updateUserEmail,
+  deleteUserData,
 } from "../controllers/user.controller.js";
 
 import {
@@ -26,6 +29,15 @@ router.get("/check-user-exists", checkUserExists);
 router.post("/register", authenticateFirebaseToken, createUser);
 router.post("/google-login", authenticateFirebaseToken, handleGoogleLogin);
 router.post("/user-data", authenticateFirebaseToken, getUserData);
+
+// --- EDITAR USUÁRIO -----------------------------------------------------------------------------------------------
+/*router.post(
+  "/update-profile-photo",
+  authenticateFirebaseToken,
+  updateUserProfilePhoto
+);*/
+router.post("/update-email", authenticateFirebaseToken, updateUserEmail);
+router.delete("/delete-user-data", authenticateFirebaseToken, deleteUserData);
 
 // --- ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------
 
