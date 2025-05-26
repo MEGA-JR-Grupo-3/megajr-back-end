@@ -100,8 +100,10 @@ export const getTasksByUser = async (req: AuthRequest, res: Response) => {
 // ADICIONAR TAREFA---------------------------------------------------------------------------------------------------------------
 export const addTask = async (req: AuthRequest, res: Response) => {
   // Use AuthRequest
-  const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
+  const { titulo, descricao, data_prazo, prioridade } = req.body;
   const email = req.userEmail;
+
+  const estado_tarefa = "Pendente";
 
   if (!titulo || !prioridade || !email) {
     return res.status(400).json({
