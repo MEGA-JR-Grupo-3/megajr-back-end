@@ -220,9 +220,45 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
 };
 
 // Atualizar foto de perfil no DB
-/*export const updateUserProfilePhoto = async (
+export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>{
+  const {newPhoto} = req.body;
+  const userEmail = req.userEmail;
 
-};*/
+  if (!newPhoto){
+    return res.status(400).json({
+      message: "Nova foto do perfil não fornecida.",
+    });
+  }
+
+  try {
+    const db = await dbPromise;
+    const query = `
+      UPDATE usuario
+      SET foto_perfil = $1
+      WHERE email = $2
+      RETURNING *
+    `;
+    const result: QueryResult = await db.query(query, [newPhoto,userEmail]);
+
+    if (result.rowCount && result.rowCount > 0) {
+      return res.status(200).json({
+        message: "Foto atualizada com sucesso no DB.",
+        user: result.rows[0],
+      });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "Usuário não encontrado para atualizar a foto de perfil." });
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar foto do perfil no DB:", err);
+    return res.status(500).json({
+      message: "Erro ao atualizar foto do perfil no banco de dados",
+      error: err,
+    });
+  }
+
+};
 
 // Atualizar email no DB
 export const updateUserEmail = async (req: AuthRequest, res: Response) => {

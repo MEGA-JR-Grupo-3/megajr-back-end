@@ -4,7 +4,7 @@ import {
   checkUserExists,
   handleGoogleLogin,
   getUserData,
-  //updateUserProfilePhoto,
+  updateUserProfilePhoto,
   updateUserEmail,
   deleteUserData,
 } from "../controllers/user.controller.js";
@@ -31,11 +31,11 @@ router.post("/google-login", authenticateFirebaseToken, handleGoogleLogin);
 router.post("/user-data", authenticateFirebaseToken, getUserData);
 
 // --- EDITAR USUÁRIO -----------------------------------------------------------------------------------------------
-/*router.post(
+router.post(
   "/update-profile-photo",
   authenticateFirebaseToken,
   updateUserProfilePhoto
-);*/
+);
 router.post("/update-email", authenticateFirebaseToken, updateUserEmail);
 router.delete("/delete-user-data", authenticateFirebaseToken, deleteUserData);
 
