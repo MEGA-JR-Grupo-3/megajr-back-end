@@ -1,9 +1,9 @@
 // src/firebaseAdminConfig.ts
 
 import * as dotenv from "dotenv";
-dotenv.config(); // Carrega as variáveis do .env (localmente)
+dotenv.config();
 
-import admin from "firebase-admin"; // Certifique-se que esta importação está correta para seu TSConfig
+import admin from "firebase-admin";
 
 console.log("--- DEBUG Firebase Admin SDK Initialization ---");
 

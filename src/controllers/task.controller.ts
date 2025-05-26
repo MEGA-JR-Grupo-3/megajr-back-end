@@ -103,10 +103,10 @@ export const addTask = async (req: AuthRequest, res: Response) => {
   const { titulo, descricao, data_prazo, prioridade, estado_tarefa } = req.body;
   const email = req.userEmail;
 
-  if (!titulo || !prioridade || !estado_tarefa || !email) {
+  if (!titulo || !prioridade || !email) {
     return res.status(400).json({
       message:
-        "Título, prioridade, estado são obrigatórios. Email do usuário não encontrado no token.",
+        "Título e prioridade são obrigatórios. Email do usuário não encontrado no token.",
     });
   }
 

@@ -22,11 +22,10 @@ export const authenticateFirebaseToken = async (
   }
 
   try {
-    // Verifica o Firebase ID Token
     const decodedToken = await admin.auth().verifyIdToken(token);
 
-    req.userId = decodedToken.uid; // ID único do usuário no Firebase
-    req.userEmail = decodedToken.email; // Email do usuário no Firebase
+    req.userId = decodedToken.uid;
+    req.userEmail = decodedToken.email;
 
     next();
   } catch (error) {

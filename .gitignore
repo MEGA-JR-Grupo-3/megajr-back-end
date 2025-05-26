@@ -2,17 +2,5 @@ node_modules
 
 netlify.toml
 
-# Firebase credentials
-config/autenticacao-mega-firebase-adminsdk-fbsvc-43899e9871.json
-autenticacao-mega-firebase-adminsdk-fbsvc-43899e9871.json
-src/config/autenticacao-mega-firebase-adminsdk-*.json
-
-# Firebase Admin SDK Credentials
-*.json
-# Ou mais específico:
-src/config/autenticacao-mega-firebase-adminsdk-*.json
-# Ou o nome exato do seu arquivo:
-src/config/autenticacao-mega-firebase-adminsdk-fbsvc-43899e9871.json
-
 # Variáveis de Ambiente
 .env
