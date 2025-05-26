@@ -221,12 +221,18 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
 
 // Atualizar foto de perfil no DB
 export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>{
-  const {newPhoto} = req.body;
+  const {photoURL} = req.body;
   const userEmail = req.userEmail;
 
-  if (!newPhoto){
+  if (!photoURL){
     return res.status(400).json({
-      message: "Nova foto do perfil não fornecida.",
+      message: "URL da nova foto de perfil não fornecido!",
+    });
+  }
+
+  if (!userEmail) {
+    return res.status(401).json({
+      message: "Usuário não autenticado corretamente.",
     });
   }
 
@@ -236,9 +242,9 @@ export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>
       UPDATE usuario
       SET foto_perfil = $1
       WHERE email = $2
-      RETURNING *
+      RETURNING nome, email, foto_perfil
     `;
-    const result: QueryResult = await db.query(query, [newPhoto,userEmail]);
+    const result: QueryResult = await db.query(query, [photoURL,userEmail]);
 
     if (result.rowCount && result.rowCount > 0) {
       return res.status(200).json({
@@ -355,3 +361,4 @@ export const deleteUserData = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
