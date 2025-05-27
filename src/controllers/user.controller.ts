@@ -220,11 +220,14 @@ export const getUserData = async (req: AuthRequest, res: Response) => {
 };
 
 // Atualizar foto de perfil no DB
-export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>{
-  const {photoURL} = req.body;
+export const updateUserProfilePhoto = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const { photoURL } = req.body;
   const userEmail = req.userEmail;
 
-  if (!photoURL){
+  if (!photoURL) {
     return res.status(400).json({
       message: "URL da nova foto de perfil não fornecido!",
     });
@@ -238,9 +241,9 @@ export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>
 
   try {
     const db = await dbPromise;
-    const query = `UPDATE usuario SET foto_perfil = $1 WHERE email = $2 RETURNING nome, email, foto_perfil`;
-      
-    const result: QueryResult = await db.query(query, [photoURL,userEmail]);
+    const query = `UPDATE usuario SET foto_perfil = $1 WHERE email = $2 RETURNING name, email, foto_perfil`;
+
+    const result: QueryResult = await db.query(query, [photoURL, userEmail]);
 
     if (result.rowCount && result.rowCount > 0) {
       return res.status(200).json({
@@ -248,9 +251,7 @@ export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>
         user: result.rows[0],
       });
     } else {
-      return res
-        .status(404)
-        .json({ message: "Usuário não encontrado." });
+      return res.status(404).json({ message: "Usuário não encontrado." });
     }
   } catch (err) {
     console.error("Erro no DB:", err);
@@ -259,7 +260,6 @@ export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>
       error: err,
     });
   }
-
 };
 
 // Atualizar email no DB
@@ -357,4 +357,3 @@ export const deleteUserData = async (req: AuthRequest, res: Response) => {
     });
   }
 };
-
