@@ -8,7 +8,6 @@ import { fileURLToPath } from "url";
 
 const app = express();
 
-// Para resolver __dirname em módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

@@ -5,7 +5,7 @@ import {
   handleGoogleLogin,
   getUserData,
   updateUserProfilePhoto,
-  updateUserEmail,
+  updateAccountName,
   deleteUserData,
 } from "../controllers/user.controller.js";
 
@@ -36,7 +36,11 @@ router.post(
   authenticateFirebaseToken,
   updateUserProfilePhoto
 );
-router.post("/update-email", authenticateFirebaseToken, updateUserEmail);
+router.post(
+  "/update-account-name",
+  authenticateFirebaseToken,
+  updateAccountName
+);
 router.delete("/delete-user-data", authenticateFirebaseToken, deleteUserData);
 
 // --- ROTAS DAS TAREFAS --------------------------------------------------------------------------------------------

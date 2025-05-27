@@ -180,7 +180,6 @@ export const handleGoogleLogin = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Função para buscar dados do usuário
 export const getUserData = async (req: AuthRequest, res: Response) => {
   const email = req.userEmail;
 
@@ -262,46 +261,45 @@ export const updateUserProfilePhoto = async (
   }
 };
 
-// Atualizar email no DB
-export const updateUserEmail = async (req: AuthRequest, res: Response) => {
-  const oldEmail = req.userEmail;
-  const { newEmail } = req.body;
+// Atualizar o nome da conta no DB
+export const updateAccountName = async (req: AuthRequest, res: Response) => {
+  const { newAccountName } = req.body;
+  const userEmail = req.userEmail;
 
-  if (!oldEmail || !newEmail) {
+  if (!newAccountName) {
     return res.status(400).json({
-      message: "Email antigo ou novo email não fornecidos.",
+      message: "Nome da conta não fornecido!",
+    });
+  }
+
+  if (!userEmail) {
+    return res.status(401).json({
+      message: "Usuário não autenticado corretamente.",
     });
   }
 
   try {
     const db = await dbPromise;
-    const checkDuplicateQuery = "SELECT email FROM usuario WHERE email = $1";
-    const duplicateResult: QueryResult = await db.query(checkDuplicateQuery, [
-      newEmail,
-    ]);
-    if (duplicateResult.rows.length > 0) {
-      return res
-        .status(409)
-        .json({ message: "Este novo email já está em uso por outra conta." });
-    }
+    // Assumindo que a coluna para o nome da conta é 'name' na sua tabela 'usuario'
+    const query = `UPDATE usuario SET name = $1 WHERE email = $2 RETURNING id_usuario, name, email, foto_perfil`;
 
-    const query = "UPDATE usuario SET email = $1 WHERE email = $2 RETURNING *";
-    const result: QueryResult = await db.query(query, [newEmail, oldEmail]);
+    const result: QueryResult = await db.query(query, [
+      newAccountName,
+      userEmail,
+    ]);
 
     if (result.rowCount && result.rowCount > 0) {
       return res.status(200).json({
-        message: "Email atualizado com sucesso no DB.",
+        message: "Nome da conta atualizado com sucesso.",
         user: result.rows[0],
       });
     } else {
-      return res
-        .status(404)
-        .json({ message: "Usuário não encontrado para atualizar o email." });
+      return res.status(404).json({ message: "Usuário não encontrado." });
     }
   } catch (err) {
-    console.error("Erro ao atualizar email no DB:", err);
+    console.error("Erro no DB ao atualizar nome da conta:", err);
     return res.status(500).json({
-      message: "Erro ao atualizar email no banco de dados",
+      message: "Erro ao atualizar nome da conta.",
       error: err,
     });
   }
