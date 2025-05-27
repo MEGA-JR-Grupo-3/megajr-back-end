@@ -238,28 +238,24 @@ export const updateUserProfilePhoto = async (req: AuthRequest, res: Response) =>
 
   try {
     const db = await dbPromise;
-    const query = `
-      UPDATE usuario
-      SET foto_perfil = $1
-      WHERE email = $2
-      RETURNING nome, email, foto_perfil
-    `;
+    const query = `UPDATE usuario SET foto_perfil = $1 WHERE email = $2 RETURNING nome, email, foto_perfil`;
+      
     const result: QueryResult = await db.query(query, [photoURL,userEmail]);
 
     if (result.rowCount && result.rowCount > 0) {
       return res.status(200).json({
-        message: "Foto atualizada com sucesso no DB.",
+        message: "Foto atualizada com sucesso.",
         user: result.rows[0],
       });
     } else {
       return res
         .status(404)
-        .json({ message: "Usuário não encontrado para atualizar a foto de perfil." });
+        .json({ message: "Usuário não encontrado." });
     }
   } catch (err) {
-    console.error("Erro ao atualizar foto do perfil no DB:", err);
+    console.error("Erro no DB:", err);
     return res.status(500).json({
-      message: "Erro ao atualizar foto do perfil no banco de dados",
+      message: "Erro ao atualizar foto.",
       error: err,
     });
   }
