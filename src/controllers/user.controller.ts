@@ -280,7 +280,6 @@ export const updateAccountName = async (req: AuthRequest, res: Response) => {
 
   try {
     const db = await dbPromise;
-    // Assumindo que a coluna para o nome da conta é 'name' na sua tabela 'usuario'
     const query = `UPDATE usuario SET name = $1 WHERE email = $2 RETURNING id_usuario, name, email, foto_perfil`;
 
     const result: QueryResult = await db.query(query, [
@@ -309,6 +308,9 @@ export const updateAccountName = async (req: AuthRequest, res: Response) => {
 export const deleteUserData = async (req: AuthRequest, res: Response) => {
   const firebaseUid = req.userId;
   const userEmail = req.userEmail;
+
+  console.log("deleteUserData: Recebido UID:", firebaseUid);
+  console.log("deleteUserData: Recebido Email:", userEmail);
 
   if (!firebaseUid && !userEmail) {
     return res
