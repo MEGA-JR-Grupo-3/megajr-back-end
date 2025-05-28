@@ -309,9 +309,6 @@ export const deleteUserData = async (req: AuthRequest, res: Response) => {
   const firebaseUid = req.userId;
   const userEmail = req.userEmail;
 
-  console.log("deleteUserData: Recebido UID:", firebaseUid);
-  console.log("deleteUserData: Recebido Email:", userEmail);
-
   if (!firebaseUid && !userEmail) {
     return res
       .status(401)
@@ -323,21 +320,22 @@ export const deleteUserData = async (req: AuthRequest, res: Response) => {
     let query = "";
     let params: string[] = [];
 
-    if (firebaseUid) {
-      query = "DELETE FROM usuario WHERE firebase_uid = $1";
-      params = [firebaseUid];
-    } else if (userEmail) {
+    if (userEmail) {
+      // MUDANÇA AQUI: PRIORIZA EMAIL
       query = "DELETE FROM usuario WHERE email = $1";
       params = [userEmail];
+      console.warn("Deletando usuário por email.");
+    } else if (firebaseUid) {
+      query = "DELETE FROM usuario WHERE firebase_uid = $1";
+      params = [firebaseUid];
       console.warn(
-        "Deletando usuário por email. Considere adicionar 'firebase_uid' à sua tabela 'usuario' para exclusão mais robusta."
+        "Deletando usuário por firebase_uid (email não disponível)."
       );
     } else {
       return res.status(400).json({
         message: "Não foi possível identificar o usuário para exclusão.",
       });
     }
-
     const result: QueryResult = await db.query(query, params);
 
     if (result.rowCount && result.rowCount > 0) {
