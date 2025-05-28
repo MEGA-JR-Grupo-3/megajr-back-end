@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 
 app.use(
   cors({
-    origin: "*", //"https://megajr-front.netlify.app",
+    origin: "*", // ou "https://megajr-front.netlify.app",
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
     credentials: true,
   })
@@ -25,7 +25,11 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 console.log("Servindo arquivos estáticos de /uploads.");
 
-app.use("/", userRoutes);
-console.log("Rotas de usuário adicionadas.");
+app.use("/api", userRoutes);
+console.log("Rotas de usuário adicionadas sob o prefixo /api.");
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Rota não encontrada. Verifique a URL." });
+});
 
 export default app;
