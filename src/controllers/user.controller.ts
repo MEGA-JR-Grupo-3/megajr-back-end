@@ -315,43 +315,70 @@ export const deleteUserData = async (req: AuthRequest, res: Response) => {
       .json({ message: "UID ou Email do usuário não disponível no token." });
   }
 
-  try {
-    const db = await dbPromise;
-    let query = "";
-    let params: string[] = [];
+  const pool = await dbPromise;
+  const client = await pool.connect();
 
-    if (userEmail) {
-      // MUDANÇA AQUI: PRIORIZA EMAIL
-      query = "DELETE FROM usuario WHERE email = $1";
-      params = [userEmail];
-      console.warn("Deletando usuário por email.");
-    } else if (firebaseUid) {
-      query = "DELETE FROM usuario WHERE firebase_uid = $1";
-      params = [firebaseUid];
-      console.warn(
-        "Deletando usuário por firebase_uid (email não disponível)."
+  try {
+    await client.query("BEGIN");
+
+    let userIdFromDb: string | null = null;
+    if (firebaseUid) {
+      const userQueryResult = await client.query(
+        "SELECT id_usuario FROM usuario WHERE firebase_uid = $1",
+        [firebaseUid]
       );
-    } else {
-      return res.status(400).json({
-        message: "Não foi possível identificar o usuário para exclusão.",
+      if (userQueryResult.rows.length > 0) {
+        userIdFromDb = userQueryResult.rows[0].id_usuario;
+      }
+    } else if (userEmail) {
+      const userQueryResult = await client.query(
+        "SELECT id_usuario FROM usuario WHERE email = $1",
+        [userEmail]
+      );
+      if (userQueryResult.rows.length > 0) {
+        userIdFromDb = userQueryResult.rows[0].id_usuario;
+      }
+    }
+
+    if (!userIdFromDb) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message:
+          "Dados do usuário não encontrados no banco de dados para deleção.",
       });
     }
-    const result: QueryResult = await db.query(query, params);
+    await client.query("DELETE FROM tarefa WHERE id_usuario = $1", [
+      userIdFromDb,
+    ]);
+    console.log(`Tarefas do usuário ${userIdFromDb} deletadas.`);
+
+    const result: QueryResult = await client.query(
+      "DELETE FROM usuario WHERE id_usuario = $1",
+      [userIdFromDb]
+    );
+    console.log(`Usuário ${userIdFromDb} deletado da tabela usuario.`);
 
     if (result.rowCount && result.rowCount > 0) {
-      return res
-        .status(200)
-        .json({ message: "Dados do usuário deletados do banco de dados." });
+      await client.query("COMMIT");
+      return res.status(200).json({
+        message: "Dados do usuário e relacionados deletados do banco de dados.",
+      });
     } else {
+      await client.query("ROLLBACK");
       return res.status(404).json({
-        message: "Dados do usuário não encontrados no banco de dados.",
+        message:
+          "Usuário principal não encontrado após deleção de dados relacionados.",
       });
     }
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Erro ao deletar dados do usuário no DB:", err);
     return res.status(500).json({
-      message: "Erro ao deletar dados do usuário no banco de dados",
+      message:
+        "Erro ao deletar dados do usuário no banco de dados. Transação revertida.",
       error: err,
     });
+  } finally {
+    client.release();
   }
 };
