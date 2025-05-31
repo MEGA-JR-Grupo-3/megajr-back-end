@@ -76,7 +76,7 @@ Para configurar e rodar o backend do JubiTasks em sua máquina local, siga os pa
 
 ---
 
-## Estrutura de Pastas (Exemplo)
+## Estrutura de Pastas
 
 ```
 .
