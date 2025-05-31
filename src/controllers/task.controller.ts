@@ -1,8 +1,7 @@
 // src/controllers/task.controller.ts
 
-import { Pool, QueryResult } from "pg";
 import { dbPromise } from "../db/connection.js";
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 
 // BUSCAR TAREFAS POR TITULO-----------------------------------------------------------------------------------------------------
