@@ -6,13 +6,13 @@ Este repositório contém o código-fonte do backend da aplicação **JubiTasks*
 
 O backend do JubiTasks foi construído com um conjunto robusto de tecnologias para garantir performance, escalabilidade e segurança:
 
-* **Node.js**: Plataforma de execução JavaScript assíncrona e orientada a eventos.
-* **Express.js**: Framework web rápido, flexível e minimalista para Node.js, utilizado para construir a API RESTful.
-* **TypeScript**: Superconjunto do JavaScript que adiciona tipagem estática, melhorando a manutenibilidade e a detecção de erros em tempo de desenvolvimento.
-* **PostgreSQL**: Sistema de gerenciamento de banco de dados relacional objeto-orientado, escolhido para a persistência dos dados das tarefas e usuários.
-* **Google Cloud Platform (GCP)**: Utilizado para a infraestrutura de deployment e outros serviços em nuvem.
-* **Firebase Authentication**: Serviço de autenticação do Google Firebase, empregado para gerenciar o login e o registro de usuários de forma segura.
-* **Firebase Storage**: Serviço de armazenamento de objetos do Google Firebase, utilizado para salvar e servir imagens associadas às tarefas ou perfis de usuário.
+* **Node.js**
+* **Express.js**
+* **TypeScript**
+* **PostgreSQL**
+* **Google Cloud Platform (GCP)**
+* **Firebase Authentication**
+* **Firebase Storage**
 
 ## Como o Projeto Foi Desenvolvido
 
