@@ -21,7 +21,7 @@ O desenvolvimento do backend do JubiTasks seguiu uma arquitetura bem definida pa
 1.  **Estrutura de Projeto**: Adotamos uma estrutura modular, organizando o código por funcionalidades (ex: usuários, tarefas) e por camadas (controllers, services, repositories).
 2.  **API RESTful**: Foram projetados e implementados endpoints RESTful para todas as operações CRUD (Criar, Ler, Atualizar, Deletar) relacionadas a tarefas e usuários.
 3.  **Gerenciamento de Autenticação**: A integração com o **Firebase Authentication** permite que os usuários se cadastrem e façam login de forma segura, com o backend validando os tokens de autenticação.
-4.  **Integração com Banco de Dados**: Utilizamos um ORM (Object-Relational Mapper) ou queries diretas (dependendo da sua implementação específica, você pode detalhar mais aqui) para interagir com o PostgreSQL, garantindo a manipulação eficiente dos dados.
+4.  **Integração com Banco de Dados**: Utilizamos um ORM (Object-Relational Mapper) ou queries diretas para interagir com o PostgreSQL, garantindo a manipulação eficiente dos dados.
 5.  **Upload de Imagens**: A integração com o **Firebase Storage** permite que os usuários façam upload de imagens, que são armazenadas de forma segura e acessíveis através de URLs.
 6.  **Validação e Tratamento de Erros**: Implementamos validações robustas para os dados de entrada e um tratamento de erros centralizado para garantir a consistência e a resiliência da API.
 
