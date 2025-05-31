@@ -1,7 +1,7 @@
 // src/app.ts
 
 import express from "express";
-import userRoutes from "./routes/user.routes.js";
+import userRoutes from "./routes/routes.js";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
