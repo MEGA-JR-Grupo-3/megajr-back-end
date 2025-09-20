@@ -1,26 +1,21 @@
 // src/db/connection.ts
-import { Pool } from "pg";
+import pkg from "pg";
+const { Pool } = pkg;
 import dotenv from "dotenv";
 
 dotenv.config();
 
 async function createDatabaseConnectionPool() {
-  const databaseUrl = process.env.DATABASE_URL as string;
-
-  if (!databaseUrl) {
-    console.error("Variável de ambiente DATABASE_URL não está definida!");
-    process.exit(1);
-  }
-
   const pool = new Pool({
-    connectionString: databaseUrl,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : undefined,
   });
 
   try {
-    await pool.query("SELECT 1");
+    await pool.connect();
     console.log("Pool de conexão PostgreSQL criado e conectado com sucesso!");
   } catch (error) {
     console.error(
